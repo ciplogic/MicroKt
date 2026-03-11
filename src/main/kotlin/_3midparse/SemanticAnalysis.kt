@@ -182,56 +182,75 @@ private fun processPropertyMetadata(prop: SkeletonNode): SkeletonNode {
 
 
 fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
-    var functionName = ""
-    var receiverType: MiniType? = null
-    val typeParams = mutableListOf<MiniType>()
     val params = mutableListOf<MiniProperty>() // This was empty!
-    var returnType = "Unit"
     var body: SkeletonNode? = null
 
-    var dotFound = false
-    var colonFound = false
+
+    var funcType = inferFunctionType(node)
+    val receiverType = inferReceiverOfFunction(node)
+    val returnParsedType = inferReturnFunctionType(node)
 
     for (child in node.children) {
         if (child.type == SkeletonType.CHEVRON) {
-            // Extract <T> from header
-            semanticExtractGenericProperties(child, params, true)
         } else if (child.type == SkeletonType.PAREN) {
             // FIX: Extract (fileName: String) into the params list
             semanticExtractProperties(child, params)
         } else if (child.type == SkeletonType.BRACE) {
             body = child
-        } else if (child.type == SkeletonType.ATOM) {
-            val t = child.token!!
-            val text = t.value
-
-            if (text == ":") {
-                colonFound = true
-            } else if (text == ".") {
-                dotFound = true
-            } else if (t.type == TokenType.IDENTIFIER) {
-                if (colonFound) {
-                    returnType = text
-                } else if (dotFound) {
-                    receiverType = functionName.nameToMiniType()
-                    functionName = text
-                } else {
-                    functionName = text
-                }
-            }
         }
     }
 
-    val functionType = MiniType(functionName, typeParams, false)
-
-    return MiniFunction(functionType, receiverType, params, returnType.nameToMiniType(), body)
+    return MiniFunction(funcType, receiverType, params, returnParsedType, body)
 }
 
-fun semanticExtractGenericProperties(
-    child: SkeletonNode,
-    params: MutableList<MiniProperty>,
-    bool: Boolean
-) {
+fun inferReturnFunctionType(node: SkeletonNode) : MiniType {
+    val children = node.children.toListView()
+    val indexOfColon = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == ":" }
+    if (indexOfColon == -1) {
+        return MiniType("void")
+    }
+    var nodesAfterColon = children.slice(indexOfColon + 1)
+    val indexOfBrace = nodesAfterColon.indexOfFirst { it.type == SkeletonType.BRACE }
+    nodesAfterColon = nodesAfterColon.slice(0, indexOfBrace)
+    val parsedType = extractType(nodesAfterColon.toList())
+    return parsedType
+}
+
+fun inferReceiverOfFunction(node: SkeletonNode) : MiniType? {
+    val children = node.children.toListView()
+    var indexOfDot = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "." }
+    if (indexOfDot == -1) {
+        return null
+    }
+    val indexOfFunc = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "fun" }
+
+    var receiverTypeNodes = children.slice(indexOfFunc+1)
+    val indexOfChevron = children.indexOfFirst { it.type == SkeletonType.CHEVRON }
+    val hasGenerics = indexOfChevron == indexOfFunc + 1;
+    if (hasGenerics) {
+        receiverTypeNodes = receiverTypeNodes.slice(1)
+    }
+
+    indexOfDot = receiverTypeNodes.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "." }
+    receiverTypeNodes = receiverTypeNodes.slice(0, indexOfDot)
+    val parsedType = extractType(receiverTypeNodes.toList())
+    return parsedType
+}
+
+private fun inferFunctionType(node: SkeletonNode): MiniType {
+    val children = node.children.toListView()
+    val indexOfFunc = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "fun" }
+
+    val indexOfChevron = children.indexOfFirst { it.type == SkeletonType.CHEVRON }
+    val hasGenerics = indexOfChevron == indexOfFunc + 1;
+    val indexOfParen = children.indexOfFirst { it.type == SkeletonType.PAREN }
+
+    var funcType = children.get(indexOfParen - 1).token?.value!!.nameToMiniType()
+    if (hasGenerics) {
+        val listOfNodes = listOf<SkeletonNode>(node.children.get(indexOfParen - 1), node.children.get(indexOfChevron))
+        funcType = extractType(listOfNodes)
+    }
+    return funcType
 }
 
 

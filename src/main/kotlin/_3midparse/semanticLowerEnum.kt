@@ -3,6 +3,7 @@ package org.example._3midparse
 import org.example._0lex.TokenType
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
+import org.example.common.get
 import org.example.common.toListView
 import org.example.common.where
 
@@ -38,7 +39,8 @@ fun semanticLowerEnum(node: SkeletonNode): MiniEnum {
 }
 
 fun extractType(nodes: List<SkeletonNode>): MiniType {
-    if (nodes.size == 1 && nodes[0].type == SkeletonType.ATOM) {
+    val childView = nodes.toListView()
+    if (childView.len == 1 && childView.get(0).type == SkeletonType.ATOM) {
         return nodes[0].token!!.value.nameToMiniType()
     }
 

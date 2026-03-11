@@ -24,7 +24,8 @@ class MiniClass(
 
 class MiniTypeAlias(
     val name: MiniType,
-    val targetType: String
+    val params: List<MiniProperty>,
+    val returnType: MiniType
 // e.g., "std::function<Int(Ref<StringView>)>"
 )
 data class MiniType(

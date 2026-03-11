@@ -4,10 +4,10 @@ import org.example._3midparse.CompilationUnit
 import org.example._3midparse.MiniClass
 import org.example._3midparse.semanticResolveTypeFull
 import org.example._4globalsymbols.GlobalSymbolTable
-import org.example._4globalsymbols.getDeclarations
+import org.example._4globalsymbols.getTableDeclarations
 
 fun generateStructDefinitions(unit: MutableList<CompilationUnit>, sb: StringBuilder, table: GlobalSymbolTable) {
-    val classes = unit.getDeclarations<MiniClass>()
+    val classes = table.getTableDeclarations<MiniClass>()
     for (decl in classes) {
         val localSb = StringBuilder()
         localSb.append("// Class: ").append(decl.name).append("\n")
@@ -28,7 +28,7 @@ fun generateStructDefinitions(unit: MutableList<CompilationUnit>, sb: StringBuil
         // 3. Properties: Type Name;
         generateCppStructProperty(decl, table, localSb)
 
-        localSb.append("\n    ").append(decl.name).append("() = default;\n")
+        localSb.append("\n    ").append(decl.name.name).append("() = default;\n")
         localSb.append("};\n\n")
 
         sb.append(localSb)

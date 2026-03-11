@@ -26,7 +26,7 @@ fun generateFunctionSignatures(unit: CompilationUnit, sb: StringBuilder, table: 
 
         // 2. Return Type & Name
         val cppReturn = semanticResolveType(decl.returnType, table)
-        sb.append(cppReturn).append(" ").append(decl.name).append("(")
+        sb.append(cppReturn).append(" ").append(decl.name.name).append("(")
 
         // 3. Parameters
         var firstParam = true

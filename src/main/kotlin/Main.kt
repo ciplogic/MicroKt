@@ -40,7 +40,6 @@ fun main(args: Array<String>) {
     // Now you have a list of all CompilationUnits for the C++ Generator
     println("\nTotal units ready for C++ generation: ${allUnits.size}")
 
-
     generateOutputCode(globalTable, allUnits)
 
 }

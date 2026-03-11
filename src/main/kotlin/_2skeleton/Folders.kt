@@ -183,7 +183,7 @@ fun foldTypeAlias(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNod
         val t = peekRes.value!!
         // Stop at the end of the line
         if (t.type == TokenType.EOLN) {
-            node.children.add(SkeletonNode(SkeletonType.ATOM, scanner.advance()))
+            scanner.advance()
             break
         }
 
