@@ -27,12 +27,12 @@ fun generateOutputCode(
     generateStructDefinitions(allUnits, finalCpp, globalTable)
 
     // Pass 5: Function Signatures (The "Header" part of functions)
-    for (unit in allUnits) {
-        generateFunctionSignatures(unit, finalCpp, globalTable)
-    }
+
+    generateFunctionSignatures(finalCpp, globalTable)
+
 
     // Pass 6: Function Bodies (The "Logic" part)
-    generateAllFunctionBodies(allUnits, finalCpp, globalTable)
+    generateAllFunctionBodies(finalCpp, globalTable)
 
     // 3. Output to file
     println("--- Generation Complete ---")

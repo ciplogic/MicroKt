@@ -25,7 +25,7 @@ fun semanticTypeAlias(node: SkeletonNode): MiniTypeAlias {
 
     if (hasGenerics) {
         val interestingList = childrenListView.slice(1, 2).toList()
-        miniType = extractType(interestingList)
+        miniType = semanticExtractType(interestingList)
         childrenListView = childrenListView.slice(4)
     } else {
         childrenListView = childrenListView.slice(3)
@@ -71,7 +71,7 @@ fun parseIndividualParameter(
 ) {
     val indexOfColon = toList.indexOfFirst { it.type == SkeletonType.ATOM && it.token!!.value == ":" }
     if (indexOfColon == -1) {
-        val parsedType = extractType(toList.toList())
+        val parsedType = semanticExtractType(toList.toList())
         var propertyName = "it"
         if (parameters.size > 0) {
             propertyName = "it${parameters.size}"
@@ -82,7 +82,7 @@ fun parseIndividualParameter(
     }
     val typeNodes = toList.slice(indexOfColon + 1).toList()
     val propertyName = toList.get(0).token!!.value
-    val parsedType = extractType(typeNodes)
+    val parsedType = semanticExtractType(typeNodes)
     val property = MiniProperty(propertyName, parsedType, false, null)
     parameters.add(property)
 }
@@ -93,7 +93,7 @@ private fun extractTypeAliasReturnType(childrenListView: ListView<SkeletonNode>)
     val indexOfArrow = childrenListView.indexOfFirst { it.type == SkeletonType.ATOM && it.token!!.value == "->" }
     if (indexOfArrow != -1) {
         val arrowView = childrenListView.slice(indexOfArrow + 1)
-        val returnTypeParsed = extractType(arrowView.toList())
+        val returnTypeParsed = semanticExtractType(arrowView.toList())
         returnType = returnTypeParsed
     }
     return returnType

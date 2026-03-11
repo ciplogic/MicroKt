@@ -73,7 +73,7 @@ val keywords = arrayOf(
     "enum",
     "if", "else", "when", "return", "typealias", "this", "true", "false", "null",
     "public", "private", "protected", "internal",
-    "override",  "final", "abstract",
+    "override",  "final", "abstract", "reified",
     "sealed", "data", "inline", "noinline", "crossinline", "tailrec",
     "external", "annotation", "latex", "operator", "infix", "suspend"
 )
@@ -187,7 +187,7 @@ fun findMatch(view: StringView): MatchResult? {
 
 val modifiers = arrayOf(
     "public", "private", "protected", "internal",
-    "override", "final", "abstract",
+    "override", "final", "abstract", "reified",
     "sealed", "data", "inline", "noinline", "crossinline", "tailrec",
     "external", "annotation", "latex", "operator", "infix", "suspend"
 )

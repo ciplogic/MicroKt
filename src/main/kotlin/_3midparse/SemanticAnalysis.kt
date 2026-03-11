@@ -106,7 +106,7 @@ fun extractFromFoldedProperty(node: SkeletonNode): MiniProperty {
     childView = childView.slice(2)
 
     val indexOfAssign = childView.indexOfFirst { it.token?.value == "=" }
-    var assignString : String? = null
+    var assignString: String? = null
     if (indexOfAssign != -1) {
         val assignView = childView.slice(indexOfAssign + 1)
         assignString = assignView.last()?.token!!.value
@@ -115,7 +115,7 @@ fun extractFromFoldedProperty(node: SkeletonNode): MiniProperty {
 
     val typeList = childView.toList()
 
-    val propertyType = extractType(typeList)
+    val propertyType = semanticExtractType(typeList)
 
     return MiniProperty(name, propertyType, isVar, assignString)
 }
@@ -185,8 +185,12 @@ fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
     val params = mutableListOf<MiniProperty>() // This was empty!
     var body: SkeletonNode? = null
 
-
     var funcType = inferFunctionType(node)
+    println("parse found function name: ${funcType.name}")
+    if (funcType.name == "getTableDeclarations") {
+        println("DEBUG: found special function")
+    }
+
     val receiverType = inferReceiverOfFunction(node)
     val returnParsedType = inferReturnFunctionType(node)
 
@@ -203,7 +207,7 @@ fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
     return MiniFunction(funcType, receiverType, params, returnParsedType, body)
 }
 
-fun inferReturnFunctionType(node: SkeletonNode) : MiniType {
+fun inferReturnFunctionType(node: SkeletonNode): MiniType {
     val children = node.children.toListView()
     val indexOfColon = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == ":" }
     if (indexOfColon == -1) {
@@ -212,11 +216,11 @@ fun inferReturnFunctionType(node: SkeletonNode) : MiniType {
     var nodesAfterColon = children.slice(indexOfColon + 1)
     val indexOfBrace = nodesAfterColon.indexOfFirst { it.type == SkeletonType.BRACE }
     nodesAfterColon = nodesAfterColon.slice(0, indexOfBrace)
-    val parsedType = extractType(nodesAfterColon.toList())
+    val parsedType = semanticExtractType(nodesAfterColon.toList())
     return parsedType
 }
 
-fun inferReceiverOfFunction(node: SkeletonNode) : MiniType? {
+fun inferReceiverOfFunction(node: SkeletonNode): MiniType? {
     val children = node.children.toListView()
     var indexOfDot = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "." }
     if (indexOfDot == -1) {
@@ -224,7 +228,7 @@ fun inferReceiverOfFunction(node: SkeletonNode) : MiniType? {
     }
     val indexOfFunc = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "fun" }
 
-    var receiverTypeNodes = children.slice(indexOfFunc+1)
+    var receiverTypeNodes = children.slice(indexOfFunc + 1)
     val indexOfChevron = children.indexOfFirst { it.type == SkeletonType.CHEVRON }
     val hasGenerics = indexOfChevron == indexOfFunc + 1;
     if (hasGenerics) {
@@ -233,7 +237,7 @@ fun inferReceiverOfFunction(node: SkeletonNode) : MiniType? {
 
     indexOfDot = receiverTypeNodes.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "." }
     receiverTypeNodes = receiverTypeNodes.slice(0, indexOfDot)
-    val parsedType = extractType(receiverTypeNodes.toList())
+    val parsedType = semanticExtractType(receiverTypeNodes.toList())
     return parsedType
 }
 
@@ -245,10 +249,14 @@ private fun inferFunctionType(node: SkeletonNode): MiniType {
     val hasGenerics = indexOfChevron == indexOfFunc + 1;
     val indexOfParen = children.indexOfFirst { it.type == SkeletonType.PAREN }
 
-    var funcType = children.get(indexOfParen - 1).token?.value!!.nameToMiniType()
+    val functionExtractedName = children.get(indexOfParen - 1).token?.value!!
+    if (functionExtractedName == "getTableDeclarations") {
+        println("DEBUG: found special function")
+    }
+    var funcType = functionExtractedName.nameToMiniType()
     if (hasGenerics) {
         val listOfNodes = listOf<SkeletonNode>(node.children.get(indexOfParen - 1), node.children.get(indexOfChevron))
-        funcType = extractType(listOfNodes)
+        funcType = semanticExtractType(listOfNodes)
     }
     return funcType
 }
@@ -261,7 +269,7 @@ fun semanticResolveType(name: MiniType, table: GlobalSymbolTable): String {
     if (symbol != null) {
         // If it's a regular class (not data, not enum), it must be Ref-counted
         if (!symbol.isData && symbol.type == SkeletonType.CLASS) {
-            return "Ref<" + name.name.nameToMiniType()+ ">"
+            return "Ref<" + name.name.nameToMiniType() + ">"
         }
     }
 

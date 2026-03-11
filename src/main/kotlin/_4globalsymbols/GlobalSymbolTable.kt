@@ -20,7 +20,7 @@ class SymbolInfo(
     val isData: Boolean,
     val type: SkeletonType,
     val decl: Any
-){
+) {
     override fun toString(): String {
         return name.toString()
     }
@@ -43,6 +43,19 @@ inline fun <reified T> GlobalSymbolTable.getTableDeclarations(): List<T> {
 
     return result
 }
+
+fun GlobalSymbolTable.getTableFunctions(): List<MiniFunction> {
+    val result = mutableListOf<MiniFunction>()
+
+    for (decl in functions) {
+        if (decl.decl is MiniFunction) {
+            result.add(decl.decl)
+        }
+    }
+
+    return result
+}
+
 fun semanticCollectSymbols(units: List<CompilationUnit>): TResult<GlobalSymbolTable> {
     val table = GlobalSymbolTable()
 
@@ -63,7 +76,7 @@ fun semanticCollectSymbols(units: List<CompilationUnit>): TResult<GlobalSymbolTa
 private fun extractTypeDeclarations(
     units: List<CompilationUnit>,
     table: GlobalSymbolTable
-) : TResult<GlobalSymbolTable> {
+): TResult<GlobalSymbolTable> {
     // 1. Process Classes (Reference and Data)
     val classes: List<MiniClass> = units.getDeclarations<MiniClass>()
     for (decl in classes) {

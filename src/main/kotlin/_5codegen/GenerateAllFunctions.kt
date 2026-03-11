@@ -1,16 +1,14 @@
 package org.example._5codegen
 
-import org.example._3midparse.CompilationUnit
-import org.example._3midparse.MiniFunction
 import org.example._3midparse.semanticResolveType
 import org.example._3midparse.semanticResolveTypeFull
 import org.example._4globalsymbols.GlobalSymbolTable
-import org.example._4globalsymbols.getDeclarations
+import org.example._4globalsymbols.getTableFunctions
 
-fun generateAllFunctionBodies(allUnits: List<CompilationUnit>, sb: StringBuilder, table: GlobalSymbolTable) {
+fun generateAllFunctionBodies(sb: StringBuilder, table: GlobalSymbolTable) {
     sb.append("// --- Function Implementations ---\n\n")
 
-    var functions = allUnits.getDeclarations<MiniFunction>()
+    var functions = table.getTableFunctions()
     for (decl in functions) {
         // Skip if there is no body (abstract/interface methods)
         val body = decl.body ?: continue
@@ -18,7 +16,7 @@ fun generateAllFunctionBodies(allUnits: List<CompilationUnit>, sb: StringBuilder
         // 1. Re-generate the signature (must match the header exactly)
         if (decl.name.generics.isNotEmpty()) {
             sb.append("template <")
-            sb.append(decl.name.generics.joinToString(", ") { "typename $it" })
+            sb.append(decl.name.generics.joinToString(",") { "typename $it" })
             sb.append(">\n")
         }
 

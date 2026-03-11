@@ -16,16 +16,18 @@ data class PairRule(
     val type: SkeletonType
 )
 
+typealias HeaderParserMapper = (Scanner) -> TResult<SkeletonNode>
+
 private val headerPairs = arrayOf(
     PairRule("(", ")", SkeletonType.PAREN),
     PairRule("[", "]", SkeletonType.BRACKET),
     PairRule("<", ">", SkeletonType.CHEVRON),
     PairRule("{", "}", SkeletonType.BRACE)
 )
-fun foldGroup(
+fun foldGroupInHeader(
     scanner: Scanner,
     rule: PairRule,
-    childParser: (Scanner) -> TResult<SkeletonNode>
+    childParser: HeaderParserMapper
 ): TResult<SkeletonNode> {
     val opener = scanner.advance() // Consume the opener (e.g., '(')
     val node = SkeletonNode(rule.type, opener)
@@ -62,7 +64,7 @@ fun parseHeaderNext(scanner: Scanner): TResult<SkeletonNode> {
     for (rule in headerPairs) {
         if (text == rule.open) {
             // Recurse using this same function for children
-            return foldGroup(scanner, rule, ::parseHeaderNext)
+            return foldGroupInHeader(scanner, rule, ::parseHeaderNext)
         }
     }
 
