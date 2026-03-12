@@ -1,8 +1,6 @@
 package org.example.common
 
-data class TResult<T>(val value: T?, val errorMessage: String?) {
-
-}
+data class TResult<T>(val value: T?, val errorMessage: String?)
 
 fun <T, R> TResult<T>.asError(): TResult<R> {
     return TResult<R>(null, errorMessage)
@@ -11,9 +9,11 @@ fun <T, R> TResult<T>.asError(): TResult<R> {
 fun <T> TResult<T>.isSuccess(): Boolean {
     return value != null
 }
+
 fun <T> TResult<T>.isError(): Boolean {
     return errorMessage != null
 }
+
 fun <T> success(value: T): TResult<T> {
     return TResult(value, null)
 }

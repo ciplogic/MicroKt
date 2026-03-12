@@ -1,16 +1,7 @@
 package org.example._2skeleton
 
-import org.example.common.TResult
-import org.example.common.asError
-import org.example.common.isError
-import org.example.common.isSuccess
-import org.example.common.success
-import org.example._0lex.Scanner
-import org.example._0lex.Token
-import org.example._0lex.TokenType
-import org.example._0lex.advance
-import org.example._0lex.isAtEnd
-import org.example._0lex.peek
+import org.example._0lex.*
+import org.example.common.*
 
 
 fun foldFunction(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
@@ -26,7 +17,9 @@ fun foldFunction(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode
 
         if (text == "{") {
             // Block body: fold everything until the matching '}'
-            val bodyResult = parseNext(scanner)
+            //val bodyResult = parseNext(scanner)
+            scanner.advance() // Consume '{'
+            val bodyResult = parseBodyNext(scanner, SkeletonType.BRACE, "}")
             if (bodyResult.isError()) return bodyResult
             node.children.add(bodyResult.value!!)
         } else if (text == "=") {
@@ -44,6 +37,61 @@ fun foldFunction(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode
     }
 
     return success(node)
+}
+
+
+fun isOpeningToken(token: Token): Boolean {
+    if (token.type != TokenType.OPERATOR) {
+        return false
+    }
+
+    if (token.value == "{") {
+        return true
+    }
+
+    return false
+}
+
+fun parseBodyNext(scanner: Scanner, skeletonType: SkeletonType, closingTokenText: String): TResult<SkeletonNode> {
+    val rootNode = SkeletonNode(skeletonType)
+    while (!scanner.isAtEnd()) {
+        val lineTokens = mutableListOf<Token>()
+        while (!scanner.isAtEnd()) {
+            val peek = scanner.peek().value!!
+            if (peek.type == TokenType.EOLN) break
+            lineTokens.add(scanner.advance())
+        }
+        scanner.advance()
+        if (lineTokens.isEmpty()) {
+            continue
+        }
+
+        val lastToken = lineTokens.last()
+
+        if (lastToken.value == closingTokenText) {
+            return success(rootNode)
+        }
+        val skeleton = tokensToStatement(lineTokens)
+        val isOpening = isOpeningToken(lastToken)
+        if (isOpening) {
+            lineTokens.removeLast()
+            val bodyResult = parseBodyNext(scanner, SkeletonType.BRACE, "}")
+            if (bodyResult.isError()) return bodyResult
+            skeleton.children.add(bodyResult.value!!)
+
+        }
+        rootNode.children.add(skeleton)
+    }
+
+    return success(rootNode)
+}
+
+private fun tokensToStatement(tokens: List<Token>): SkeletonNode {
+    val node = SkeletonNode(SkeletonType.STATEMENT)
+    for (t in tokens) {
+        node.children.add(SkeletonNode(SkeletonType.ATOM, t))
+    }
+    return node
 }
 
 fun foldFunctionHeader(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
@@ -79,6 +127,7 @@ fun foldFunctionHeader(scanner: Scanner, modifiers: List<Token>): TResult<Skelet
     }
     return success(node)
 }
+
 /**
  * Helper to collect all nodes on the current line (used for expression bodies).
  */

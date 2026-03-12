@@ -2,18 +2,9 @@ package org.example._4globalsymbols
 
 import org.example._2skeleton.SkeletonType
 import org.example._3midparse.mapToFullName
-import org.example._3midparse.models.CompilationUnit
-import org.example._3midparse.models.MiniClass
-import org.example._3midparse.models.MiniEnum
-import org.example._3midparse.models.MiniFunction
-import org.example._3midparse.models.MiniType
+import org.example._3midparse.models.*
 import org.example._3midparse.nameToMiniType
-import org.example.common.TResult
-import org.example.common.asError
-import org.example.common.indexOfFirst
-import org.example.common.isError
-import org.example.common.success
-import org.example.common.toListView
+import org.example.common.*
 
 class SymbolInfo(
     val name: MiniType,
@@ -135,10 +126,7 @@ fun isTypeDependentOnOtherType(t1: SymbolInfo, typeToSearch: MiniType): Boolean 
         }
         val view = dependentTypes.toListView()
         val indexOf = view.indexOfFirst { it.name == typeToSearch.name }
-        if (indexOf == -1) {
-            return false
-        }
-        return true
+        return indexOf != -1
     }
 
     return false

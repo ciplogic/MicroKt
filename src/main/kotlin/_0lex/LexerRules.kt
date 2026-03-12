@@ -9,13 +9,13 @@ import org.example.common.startsWith
 typealias LexerRule = (StringView) -> Int
 
 // Custom class to replace Pair for rule definitions
-data class MatchPair(val type: TokenType, val rule: LexerRule){}
+data class MatchPair(val type: TokenType, val rule: LexerRule)
 
 // Simple data class for the return value of findMatch
-class MatchResult(val type: TokenType, val length: Int){}
+class MatchResult(val type: TokenType, val length: Int)
 
 fun getIdentifierLength(view: StringView): Int {
-    if ( !isIdentifierStart(view.get(0))) {
+    if (!isIdentifierStart(view.get(0))) {
         return 0
     }
     var len = 1
@@ -24,8 +24,9 @@ fun getIdentifierLength(view: StringView): Int {
     }
     return len
 }
+
 fun getAnnotationLength(view: StringView): Int {
-    if ( view.get(0) != '@') {
+    if (view.get(0) != '@') {
         return 0
     }
 
@@ -55,7 +56,7 @@ fun getEolnLength(view: StringView): Int {
     if (firstChar != '\n' && firstChar != '\r') return 0
     val textOfChars = "\r\n\t "
     var len = 0
-    while (len < view.length){
+    while (len < view.length) {
         if (!textOfChars.contains(view.get(len))) {
             break
         }
@@ -73,7 +74,7 @@ val keywords = arrayOf(
     "enum",
     "if", "else", "when", "return", "typealias", "this", "true", "false", "null",
     "public", "private", "protected", "internal",
-    "override",  "final", "abstract", "reified",
+    "override", "final", "abstract", "reified",
     "sealed", "data", "inline", "noinline", "crossinline", "tailrec",
     "external", "annotation", "latex", "operator", "infix", "suspend"
 )
@@ -96,7 +97,7 @@ fun isWhitespace(c: Char): Boolean {
 }
 
 fun getNumberLength(view: StringView): Int {
-    if ( !isDigit(view.get(0))) return 0
+    if (!isDigit(view.get(0))) return 0
     var len = 1
     while (len < view.length && isDigit(view.get(len))) {
         len++

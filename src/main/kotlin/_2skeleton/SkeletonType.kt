@@ -1,8 +1,8 @@
 package org.example._2skeleton
 
-import org.example.common.TResult
 import org.example._0lex.Scanner
 import org.example._0lex.Token
+import org.example.common.TResult
 
 enum class SkeletonType {
     CONSTRUCT,   // A complex structure like: [Keyword] + [Header Nodes] + [Body Node]
@@ -16,12 +16,10 @@ enum class SkeletonType {
     PACKAGE,
     TYPEALIAS,
     CLASS,
-    RET,
-    IF,
-    WHILE,
-    PROPERTY,
+    BODY,
+    STATEMENT,
     FUNCTION,
-    FOR
+    PROPERTY,
 }
 
 

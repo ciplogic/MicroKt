@@ -5,7 +5,7 @@ import org.example._2skeleton.SkeletonType
 import org.example._3midparse.models.MiniBody
 
 
-fun semanticBody(body: SkeletonNode?) : MiniBody {
+fun semanticBody(body: SkeletonNode?): MiniBody {
     if (body == null) return MiniBody(null, null)
     if (body.type == SkeletonType.BRACE) {
         val children = body.children

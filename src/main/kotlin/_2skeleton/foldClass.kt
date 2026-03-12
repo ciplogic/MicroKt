@@ -1,25 +1,16 @@
 package org.example._2skeleton
 
-import org.example.common.TResult
-import org.example.common.asError
-import org.example.common.isError
-import org.example.common.success
-import org.example._0lex.Scanner
-import org.example._0lex.Token
-import org.example._0lex.TokenType
-import org.example._0lex.advance
-import org.example._0lex.errorAt
-import org.example._0lex.isAtEnd
-import org.example._0lex.peek
-import org.example.common.isSuccess
+import org.example._0lex.*
+import org.example.common.*
 
-fun modifiersToAtoms(modifiers: List<Token>) : List<SkeletonNode> {
+fun modifiersToAtoms(modifiers: List<Token>): List<SkeletonNode> {
     var result = mutableListOf<SkeletonNode>()
     for (m in modifiers) {
         result.add(SkeletonNode(SkeletonType.ATOM, m))
     }
     return result
 }
+
 fun foldClassHeader(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
     val node = SkeletonNode(SkeletonType.CLASS)
     val modifierNodes = modifiersToAtoms(modifiers)
@@ -43,6 +34,7 @@ fun foldClassHeader(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonN
     }
     return success(node)
 }
+
 fun foldClass(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
     val nodeResult = foldClassHeader(scanner, modifiers)
     if (nodeResult.isError()) return nodeResult
@@ -104,6 +96,7 @@ fun foldClassProperty(scanner: Scanner, modifiers: List<Token>): TResult<Skeleto
 
     return success(node)
 }
+
 private fun foldClassBody(scanner: Scanner): TResult<SkeletonNode> {
     scanner.advance() // '{'
     val bodyNode = SkeletonNode(SkeletonType.BRACE)

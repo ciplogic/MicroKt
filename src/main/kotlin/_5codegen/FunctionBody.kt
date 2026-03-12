@@ -1,11 +1,11 @@
 package org.example._5codegen
 
+import org.example._0lex.TokenType
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
+import org.example._3midparse.models.MiniBody
 import org.example._3midparse.semanticGetText
 import org.example._4globalsymbols.GlobalSymbolTable
-import org.example._0lex.TokenType
-import org.example._3midparse.models.MiniBody
 
 fun generateFunctionBody(body: MiniBody, sb: StringBuilder, isExtension: Boolean, table: GlobalSymbolTable) {
     // 1. A function body in Kotlin is usually a BRACE node
@@ -32,10 +32,7 @@ fun generateStatement(node: SkeletonNode, sb: StringBuilder, isExtension: Boolea
     val type = node.type
 
     val localSb = StringBuilder()
-    if (type == SkeletonType.IF) generateIf(node, localSb, isExtension, table)
-    else if (type == SkeletonType.WHILE) generateWhile(node, localSb, isExtension, table)
-    else if (type == SkeletonType.FOR) generateFor(node, localSb, isExtension, table)
-    else if (type == SkeletonType.PROPERTY) generateLocalVar(node, localSb, isExtension, table)
+    if (type == SkeletonType.PROPERTY) generateLocalVar(node, localSb, isExtension, table)
     else if (type == SkeletonType.ATOM) {
         // Handle loose atoms like return, break, or EOLN
         generateExpression(node, localSb, isExtension, table)
@@ -45,9 +42,10 @@ fun generateStatement(node: SkeletonNode, sb: StringBuilder, isExtension: Boolea
         generateExpression(node, localSb, isExtension, table)
         localSb.append(";\n")
     }
-    val outText = localSb.toString();
+    val outText = localSb.toString()
     sb.append(outText)
 }
+
 fun generateLocalVar(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: GlobalSymbolTable) {
     // node is a PROPERTY: [val/var] [name] [:] [Type] [=] [Expression...]
     var isVar = false
@@ -90,6 +88,7 @@ fun generateLocalVar(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, tabl
 
     sb.append(";\n")
 }
+
 fun generateExpression(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: GlobalSymbolTable) {
     if (node.type == SkeletonType.ATOM) {
         val t = node.token!!
@@ -179,7 +178,7 @@ fun generateLocalProperty(node: SkeletonNode, sb: StringBuilder, isExt: Boolean,
     // node is a PROPERTY construct: val name: Type = expression
     var isVar = false
     var name = ""
-    var type = "auto"
+    "auto"
     var hasInitializer = false
 
     for (child in node.children) {

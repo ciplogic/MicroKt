@@ -1,19 +1,10 @@
 package org.example._2skeleton
 
+import org.example._0lex.*
 import org.example.common.TResult
 import org.example.common.asError
 import org.example.common.isError
 import org.example.common.success
-import org.example._0lex.Scanner
-import org.example._0lex.Token
-import org.example._0lex.TokenType
-import org.example._0lex.advance
-import org.example._0lex.errorAt
-import org.example._0lex.expect
-import org.example._0lex.isAtEnd
-import org.example._0lex.match
-import org.example._0lex.peek
-import org.example._0lex.peekText
 
 fun foldEnum(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
     // 1. Consume 'enum'
@@ -66,110 +57,6 @@ fun foldImport(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> 
     return foldLineConstruct(scanner, SkeletonType.IMPORT)
 }
 
-fun foldVar(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
-    val node = SkeletonNode(SkeletonType.RET)
-
-    node.children.addAll(modifiersToAtoms(modifiers))
-
-    scanner.advance() //var or val
-
-
-    // 2. Parse Header: Use the restricted parser
-    while (!scanner.isAtEnd()) {
-        val peekRes = scanner.peek()
-        if (peekRes.isError()) return peekRes.asError()
-
-        val t = peekRes.value!!
-
-        if (t.type == TokenType.EOLN) {
-            return success(node)
-        }
-
-        // Use the restricted header parser here!
-        val child = parseHeaderNext(scanner)
-        if (child.isError()) return child
-        node.children.add(child.value!!)
-    }
-    return success(node)
-}
-fun foldReturn(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
-    val node = SkeletonNode(SkeletonType.RET)
-
-    scanner.advance() //ret
-
-
-    // 2. Parse Header: Use the restricted parser
-    while (!scanner.isAtEnd()) {
-        val peekRes = scanner.peek()
-        if (peekRes.isError()) return peekRes.asError()
-
-        val t = peekRes.value!!
-
-        if (t.type == TokenType.EOLN) {
-            return success(node)
-        }
-
-        // Use the restricted header parser here!
-        val child = parseHeaderNext(scanner)
-        if (child.isError()) return child
-        node.children.add(child.value!!)
-    }
-    return success(node)
-}
-
-fun foldWhile(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
-    val node = SkeletonNode(SkeletonType.WHILE)
-
-    // Expect 'while'
-    val kwRes = scanner.expect("while", SkeletonType.ATOM)
-    if (kwRes.isError()) return kwRes.asError()
-    node.children.add(kwRes.value!!)
-
-    // 2. The Condition: ( ... )
-    if (scanner.peekText() == "(") {
-        // We use foldGroup which internally uses foldExpressionGroup now
-        val condRes = foldExpressionGroup(scanner)
-        if (condRes.isError()) return condRes.asError()
-        node.children.add(condRes.value!!)
-    } else {
-        return error("Expected '(' after 'while' at ${scanner.errorAt(scanner.pos)}")
-    }
-
-    // 3. The Body: { ... } or single statement
-    // parseBranch uses the logic-pass aware dispatcher
-    val bodyRes = parseBranch(scanner)
-    if (bodyRes.isError()) return bodyRes.asError()
-    node.children.add(bodyRes.value!!)
-
-    return success(node)
-}
-
-
-fun foldFor(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
-    val keyword = scanner.advance() // 'for'
-    val node = SkeletonNode(SkeletonType.FOR)
-
-    for (m in modifiers) node.children.add(SkeletonNode(SkeletonType.ATOM, m))
-    node.children.add(SkeletonNode(SkeletonType.ATOM, keyword))
-
-    // 1. The Header: (item in collection)
-    if (scanner.peek().value?.value == "(") {
-        // We use foldGroup but we need to ensure 'in' is preserved as an ATOM
-        val header = foldGroup(scanner, "(", ")", SkeletonType.PAREN)
-        if (header.isError()) return header
-        node.children.add(header.value!!)
-    } else {
-        return error("Expected '(' after 'for'")
-    }
-
-    // 2. The Body: { ... } or single statement
-    val body = parseBranch(scanner)
-    if (body.isError()) return body
-    node.children.add(body.value!!)
-
-    return success(node)
-}
-
 fun foldTypeAlias(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
     val keyword = scanner.advance() // 'typealias'
     val node = SkeletonNode(SkeletonType.TYPEALIAS)
@@ -196,65 +83,8 @@ fun foldTypeAlias(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNod
     return success(node)
 }
 
-fun foldIf(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
-    val node = SkeletonNode(SkeletonType.IF)
-
-    // Add accumulated modifiers
-    for (m in modifiers) {
-        node.children.add(SkeletonNode(SkeletonType.ATOM, m))
-    }
-
-    // 1. Match 'if' keyword
-    val ifToken = scanner.match("if")
-    if (ifToken.isError()) return ifToken.asError()
-    node.children.add(SkeletonNode(SkeletonType.ATOM, ifToken.value!!))
-
-    // 2. Condition: ( ... )
-    if (scanner.peekText() == "(") {
-        val cond = foldGroup(scanner, "(", ")", SkeletonType.PAREN)
-        if (cond.isError()) return cond.asError()
-        node.children.add(cond.value!!)
-    } else {
-        return error("Expected '(' after 'if' at ${scanner.errorAt(scanner.pos)}")
-    }
-
-    // 3. Then-Branch (Block or single statement)
-    val thenBranch = parseBranch(scanner)
-    if (thenBranch.isError()) return thenBranch.asError()
-    node.children.add(thenBranch.value!!)
-
-    // 4. Optional Else-Branch
-    if (scanner.peekText() == "else") {
-        // Consume 'else'
-        val elseToken = scanner.match("else").value!!
-        node.children.add(SkeletonNode(SkeletonType.ATOM, elseToken))
-
-        // The else branch can be another 'if' (else-if) or a block
-        val elseBranch = parseBranch(scanner)
-        if (elseBranch.isError()) return elseBranch.asError()
-        node.children.add(elseBranch.value!!)
-    }
-
-    return success(node)
-}
-
-
-/**
- * Parses either a { block } or a single atomic expression/construct
- */
-private fun parseBranch(scanner: Scanner): TResult<SkeletonNode> {
-    val peek = scanner.peek().value!!
-    if (peek.value == "{") {
-        return foldGroup(scanner, "{", "}", SkeletonType.BRACE)
-    } else {
-        // Single statement branch
-        return foldExpressionGroup(scanner)
-    }
-}
-
-
 fun foldGroup(scanner: Scanner, open: String, close: String, type: SkeletonType): TResult<SkeletonNode> {
-    val startToken = scanner.advance() // Consume '(' or '['
+    scanner.advance() // Consume '(' or '['
     val node = SkeletonNode(type)
 
     while (!scanner.isAtEnd()) {
@@ -278,7 +108,6 @@ fun foldGroup(scanner: Scanner, open: String, close: String, type: SkeletonType)
     return error("Unclosed delimiter '$open' at ${scanner.errorAt(scanner.pos)}")
 }
 
-
 private fun foldLineConstruct(scanner: Scanner, type: SkeletonType): TResult<SkeletonNode> {
     val keyword = scanner.advance()
     val node = SkeletonNode(type)
@@ -286,12 +115,14 @@ private fun foldLineConstruct(scanner: Scanner, type: SkeletonType): TResult<Ske
 
     while (!scanner.isAtEnd()) {
         val peekRes = scanner.peek()
-        if (peekRes.isError()) return error(peekRes.errorMessage!!)
+        if (peekRes.isError()) {
+            return error(peekRes.errorMessage!!)
+        }
 
         val t = peekRes.value!!
 
         if (t.type == TokenType.EOLN) {
-            // CONSUME the EOLN as part of this construct
+            scanner.advance()
             break
         }
         node.children.add(SkeletonNode(SkeletonType.ATOM, scanner.advance()))

@@ -28,7 +28,7 @@ fun generateCPlusPlusTypeAliases(unit: CompilationUnit, sb: StringBuilder, table
         // 2. Generate the C++ using statement
         // using Name = TargetType;
         sb.append("using ").append(decl.name.name)
-            .append(" = ");
+            .append(" = ")
 
         sb.append("Func<").append(decl.returnType.mapToFullName())
             .append("(")
@@ -37,6 +37,6 @@ fun generateCPlusPlusTypeAliases(unit: CompilationUnit, sb: StringBuilder, table
             .append(">")
 
         //.append(decl.returnType.mapToFullName())
-            sb.append(";\n")
+        sb.append(";\n")
     }
 }

@@ -2,7 +2,8 @@ package org.example.common
 
 import java.io.File
 
-@CppExternal fun readFileAsText(fileName: String) : String {
+@CppExternal
+fun readFileAsText(fileName: String): String {
     val file = File(fileName)
     return file.readText()
 }

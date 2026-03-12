@@ -4,14 +4,7 @@ import org.example._0lex.TokenType
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
 import org.example._3midparse.models.MiniType
-import org.example.common.ListView
-import org.example.common.get
-import org.example.common.indexOfFirst
-import org.example.common.last
-import org.example.common.slice
-import org.example.common.toList
-import org.example.common.toListView
-
+import org.example.common.*
 
 fun semanticExtractType(nodes: List<SkeletonNode>): MiniType {
     var childView = nodes.toListView()
@@ -21,11 +14,11 @@ fun semanticExtractType(nodes: List<SkeletonNode>): MiniType {
 
     if (lastNode!!.type == SkeletonType.ATOM && lastNode.token?.value == "?") {
         isNullable = true
-        childView = childView.slice(0,childView.len - 2)
+        childView = childView.slice(0, childView.len - 2)
     }
     var firstToken = childView.get(0).token
-    if (firstToken!!.type != TokenType.IDENTIFIER){
-       firstToken = childView.get(1).token
+    if (firstToken!!.type != TokenType.IDENTIFIER) {
+        firstToken = childView.get(1).token
     }
     val typeName = firstToken!!.value
     var generics = mutableListOf<MiniType>()
@@ -51,5 +44,6 @@ fun semanticExtractGenericParams(
     val leftSide = genericChildView.slice(0, indexOfComma)
     semanticExtractGenericParams(leftSide, generics)
     val rightSide = genericChildView.slice(indexOfComma + 1)
-    semanticExtractGenericParams(rightSide, generics)}
+    semanticExtractGenericParams(rightSide, generics)
+}
 

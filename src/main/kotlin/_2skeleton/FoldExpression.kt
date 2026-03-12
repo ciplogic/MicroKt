@@ -1,15 +1,10 @@
 package org.example._2skeleton
 
+import org.example._0lex.*
 import org.example.common.TResult
 import org.example.common.asError
 import org.example.common.isError
 import org.example.common.success
-import org.example._0lex.Scanner
-import org.example._0lex.TokenType
-import org.example._0lex.advance
-import org.example._0lex.isAtEnd
-import org.example._0lex.peek
-import org.example._0lex.peekText
 
 
 fun foldExpressionGroup(scanner: Scanner): TResult<SkeletonNode> {

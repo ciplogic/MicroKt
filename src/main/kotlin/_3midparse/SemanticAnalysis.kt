@@ -235,7 +235,7 @@ fun inferReceiverOfFunction(node: SkeletonNode): MiniType? {
 
     var receiverTypeNodes = children.slice(indexOfFunc + 1)
     val indexOfChevron = children.indexOfFirst { it.type == SkeletonType.CHEVRON }
-    val hasGenerics = indexOfChevron == indexOfFunc + 1;
+    val hasGenerics = indexOfChevron == indexOfFunc + 1
     if (hasGenerics) {
         receiverTypeNodes = receiverTypeNodes.slice(1)
     }
@@ -251,7 +251,7 @@ private fun inferFunctionType(node: SkeletonNode): MiniType {
     val indexOfFunc = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == "fun" }
 
     val indexOfChevron = children.indexOfFirst { it.type == SkeletonType.CHEVRON }
-    val hasGenerics = indexOfChevron == indexOfFunc + 1;
+    val hasGenerics = indexOfChevron == indexOfFunc + 1
     val indexOfParen = children.indexOfFirst { it.type == SkeletonType.PAREN }
 
     val functionExtractedName = children.get(indexOfParen - 1).token?.value!!

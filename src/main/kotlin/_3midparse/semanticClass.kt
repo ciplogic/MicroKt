@@ -1,16 +1,12 @@
 package org.example._3midparse
 
+import org.example._0lex.TokenType
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
-import org.example._0lex.TokenType
 import org.example._3midparse.models.MiniClass
 import org.example._3midparse.models.MiniProperty
 import org.example._3midparse.models.MiniType
-import org.example.common.get
-import org.example.common.indexOfFirst
-import org.example.common.slice
-import org.example.common.toList
-import org.example.common.toListView
+import org.example.common.*
 
 data class IntermediateSemanticParseHeader(
     val classType: MiniType,

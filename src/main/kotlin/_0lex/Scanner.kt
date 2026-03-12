@@ -2,13 +2,7 @@ package org.example._0lex
 
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
-import org.example.common.StringView
-import org.example.common.TResult
-import org.example.common.asError
-import org.example.common.get
-import org.example.common.isError
-import org.example.common.slice
-import org.example.common.success
+import org.example.common.*
 
 class Scanner(val source: StringView) {
     var pos: Int = 0
@@ -76,7 +70,7 @@ fun Scanner.errorAt(pos: Int): String {
     return "($line,$col)"
 }
 
-public fun Scanner.advance(): Token {
+fun Scanner.advance(): Token {
     val res = peek()
     if (res.isError()) {
         pos++
@@ -118,6 +112,7 @@ fun Scanner.expect(text: String, nodeType: SkeletonType): TResult<SkeletonNode> 
     advance()
     return success(SkeletonNode(nodeType, token))
 }
+
 fun Scanner.match(text: String): TResult<Token> {
     val res = this.peek()
     if (res.isError()) return res.asError()

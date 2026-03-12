@@ -5,12 +5,7 @@ import org.example._2skeleton.SkeletonType
 import org.example._3midparse.models.MiniProperty
 import org.example._3midparse.models.MiniType
 import org.example._3midparse.models.MiniTypeAlias
-import org.example.common.ListView
-import org.example.common.get
-import org.example.common.indexOfFirst
-import org.example.common.slice
-import org.example.common.toList
-import org.example.common.toListView
+import org.example.common.*
 
 // We support type aliases just to map lambda functions. Parameters have default name: "it", "it2", and so on when not specified
 // typealias Predicate<T> = (T) -> Boolean
@@ -43,7 +38,7 @@ fun semanticTypeAlias(node: SkeletonNode): MiniTypeAlias {
     }
 
 
-    return MiniTypeAlias(miniType,  parameters, returnType)
+    return MiniTypeAlias(miniType, parameters, returnType)
 }
 
 fun extractParametersInTypeAlias(

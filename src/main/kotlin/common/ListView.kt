@@ -17,7 +17,7 @@ data class ListView<T>(val items: List<T>, val start: Int, val len: Int) {
 
 fun <T> ListView<T>.last(): T? {
     if (this.len == 0) {
-        return null;
+        return null
     }
     return items[start + len - 1]
 }
@@ -39,7 +39,7 @@ fun <T> ListView<T>.indexOfFirst(function: Predicate<T>): Int {
             return i - start
         }
     }
-    return -1;
+    return -1
 }
 
 fun <T> ListView<T>.get(index: Int): T {

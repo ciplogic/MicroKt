@@ -9,6 +9,7 @@ data class StringView(val value: String, val start: Int, val length: Int) {
 fun StringView.slice(start: Int, end: Int): StringView {
     return StringView(value, this.start + start, end - start)
 }
+
 fun StringView.slice(start: Int): StringView {
     return StringView(value, this.start + start, length - start)
 }
@@ -16,9 +17,11 @@ fun StringView.slice(start: Int): StringView {
 fun StringView.get(index: Int): Char {
     return value[start + index]
 }
+
 fun StringView.isEmpty(): Boolean {
     return length == 0
 }
+
 fun StringView.isNotEmpty(): Boolean {
     return length > 0
 }

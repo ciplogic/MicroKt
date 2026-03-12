@@ -1,8 +1,13 @@
 package org.example
 
+import org.example._0lex.Scanner
+import org.example._0lex.Token
+import org.example._0lex.TokenType
+import org.example._0lex.isAtEnd
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
 import org.example._2skeleton.parseNext
+import org.example._3midparse.models.CompilationUnit
 import org.example._3midparse.semanticAnalyze
 import org.example._4globalsymbols.semanticCollectSymbols
 import org.example._5codegen.generateOutputCode
@@ -10,11 +15,6 @@ import org.example.common.isError
 import org.example.common.readFileAsText
 import org.example.common.scanFolderByExtension
 import org.example.common.toView
-import org.example._0lex.Scanner
-import org.example._0lex.Token
-import org.example._0lex.TokenType
-import org.example._0lex.isAtEnd
-import org.example._3midparse.models.CompilationUnit
 import java.io.File
 
 fun Token.toDisplayString(): String {
@@ -58,6 +58,10 @@ private fun parseFileToCompilationUnit(file: File): CompilationUnit {
     println("--- Lowering: ${file.name} ---")
     val content = readFileAsText(file.canonicalPath)
     val scanner = Scanner(content.toView())
+
+    if (file.canonicalPath.contains("Utils")) {
+        println("DEBUG: parsing file ${file.name}")
+    }
 
     // 1. Structural Parse (Skeleton)
     val skeletonNodes = mutableListOf<SkeletonNode>()
