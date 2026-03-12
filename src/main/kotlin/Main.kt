@@ -3,7 +3,6 @@ package org.example
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
 import org.example._2skeleton.parseNext
-import org.example._3midparse.CompilationUnit
 import org.example._3midparse.semanticAnalyze
 import org.example._4globalsymbols.semanticCollectSymbols
 import org.example._5codegen.generateOutputCode
@@ -15,6 +14,7 @@ import org.example._0lex.Scanner
 import org.example._0lex.Token
 import org.example._0lex.TokenType
 import org.example._0lex.isAtEnd
+import org.example._3midparse.models.CompilationUnit
 import java.io.File
 
 fun Token.toDisplayString(): String {

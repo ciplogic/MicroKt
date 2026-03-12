@@ -1,11 +1,7 @@
 package org.example._5codegen
 
 import org.example._2skeleton.SkeletonType
-import org.example._3midparse.CompilationUnit
-import org.example._3midparse.MiniTypeAlias
-import org.example._3midparse.mapToFullName
 import org.example._4globalsymbols.GlobalSymbolTable
-import org.example._4globalsymbols.getDeclarations
 
 fun generateCPlusPlusPreamble(table: GlobalSymbolTable): String {
     val sb = StringBuilder()

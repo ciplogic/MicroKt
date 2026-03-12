@@ -1,7 +1,7 @@
 package org.example._5codegen
 
-import org.example._3midparse.CompilationUnit
-import org.example._3midparse.MiniEnum
+import org.example._3midparse.models.CompilationUnit
+import org.example._3midparse.models.MiniEnum
 import org.example._4globalsymbols.getDeclarations
 
 fun generateCPlusPlusEnums(unit: MutableList<CompilationUnit>, sb: StringBuilder) {

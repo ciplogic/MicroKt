@@ -3,6 +3,10 @@ package org.example._3midparse
 import org.example._0lex.TokenType
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
+import org.example._3midparse.models.CompilationUnit
+import org.example._3midparse.models.MiniFunction
+import org.example._3midparse.models.MiniProperty
+import org.example._3midparse.models.MiniType
 import org.example._4globalsymbols.GlobalSymbolTable
 import org.example._4globalsymbols.semanticFindSymbol
 import org.example.common.*

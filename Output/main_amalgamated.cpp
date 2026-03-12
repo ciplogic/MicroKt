@@ -19,14 +19,14 @@ struct Scanner;
 struct MiniType;
 struct MiniClass;
 struct MiniTypeAlias;
-struct MiniFunction;
+struct MiniBody;
 struct MiniEnum;
 struct CompilationUnit;
 struct CompilationUnitHandler;
 struct IntermediateSemanticParseHeader;
 struct SymbolInfo;
 struct GlobalSymbolTable;
-struct MiniProperty;
+struct MiniFunction;
 struct CppExternal;
 
 // --- Type Aliases ---
@@ -128,7 +128,7 @@ struct PairRule {
 };
 
 // Class: SkeletonNode
-struct SkeletonNode : public KtObject {
+struct SkeletonNode : KtObject {
     SkeletonType type;
     Token token;
     MutableList<SkeletonNode> children;
@@ -137,7 +137,7 @@ struct SkeletonNode : public KtObject {
 };
 
 // Class: SkeletonRule
-struct SkeletonRule : public KtObject {
+struct SkeletonRule : KtObject {
     String trigger;
     FoldRule folder;
 
@@ -145,7 +145,7 @@ struct SkeletonRule : public KtObject {
 };
 
 // Class: MatchResult
-struct MatchResult : public KtObject {
+struct MatchResult : KtObject {
     TokenType type;
     Int length;
 
@@ -153,7 +153,7 @@ struct MatchResult : public KtObject {
 };
 
 // Class: Scanner
-struct Scanner : public KtObject {
+struct Scanner : KtObject {
     StringView source;
     Int pos;
 
@@ -170,7 +170,7 @@ struct MiniType {
 };
 
 // Class: MiniClass
-struct MiniClass : public KtObject {
+struct MiniClass : KtObject {
     MiniType name;
     Boolean isData;
     List<MiniProperty> properties;
@@ -179,7 +179,7 @@ struct MiniClass : public KtObject {
 };
 
 // Class: MiniTypeAlias
-struct MiniTypeAlias : public KtObject {
+struct MiniTypeAlias : KtObject {
     MiniType name;
     List<MiniProperty> params;
     MiniType returnType;
@@ -187,19 +187,16 @@ struct MiniTypeAlias : public KtObject {
     MiniTypeAlias() = default;
 };
 
-// Class: MiniFunction
-struct MiniFunction : public KtObject {
-    MiniType name;
-    MiniType receiverType;
-    List<MiniProperty> params;
-    MiniType returnType;
-    MiniBody body;
+// Class: MiniBody
+struct MiniBody {
+    List children;
+    Ref<SkeletonNode> node;
 
-    MiniFunction() = default;
+    MiniBody() = default;
 };
 
 // Class: MiniEnum
-struct MiniEnum : public KtObject {
+struct MiniEnum : KtObject {
     String name;
     List<String> constants;
 
@@ -207,7 +204,7 @@ struct MiniEnum : public KtObject {
 };
 
 // Class: CompilationUnit
-struct CompilationUnit : public KtObject {
+struct CompilationUnit : KtObject {
     String pkg;
     MutableList<String> imports;
     MutableList<Any> declarations;
@@ -233,7 +230,7 @@ struct IntermediateSemanticParseHeader {
 };
 
 // Class: SymbolInfo
-struct SymbolInfo : public KtObject {
+struct SymbolInfo : KtObject {
     MiniType name;
     Boolean isData;
     SkeletonType type;
@@ -243,25 +240,26 @@ struct SymbolInfo : public KtObject {
 };
 
 // Class: GlobalSymbolTable
-struct GlobalSymbolTable : public KtObject {
+struct GlobalSymbolTable : KtObject {
     MutableList<SymbolInfo> symbols;
     MutableList<SymbolInfo> functions;
 
     GlobalSymbolTable() = default;
 };
 
-// Class: MiniProperty
-struct MiniProperty : public KtObject {
-    String name;
-    MiniType type;
-    Boolean isVar;
-    String defaultInitialValue;
+// Class: MiniFunction
+struct MiniFunction : KtObject {
+    MiniType name;
+    MiniType receiverType;
+    List<MiniProperty> params;
+    MiniType returnType;
+    MiniBody body;
 
-    MiniProperty() = default;
+    MiniFunction() = default;
 };
 
 // Class: CppExternal
-struct CppExternal : public KtObject {
+struct CppExternal : KtObject {
 
     CppExternal() = default;
 };
@@ -467,7 +465,7 @@ String semanticJoinAtoms(Ref<SkeletonNode> node);
 
 String semanticGetText(Ref<SkeletonNode> node);
 
-Ref<MiniProperty> extractFromFoldedProperty(Ref<SkeletonNode> node);
+MiniProperty extractFromFoldedProperty(Ref<SkeletonNode> node);
 
 List<SkeletonNode> foldLocalPropertiesFromAtoms(List<SkeletonNode> children);
 
@@ -1697,7 +1695,7 @@ String semanticGetText(Ref<SkeletonNode> node) {
 {
         returnnode->token?->value?:""
     }
-Ref<MiniProperty> extractFromFoldedProperty(Ref<SkeletonNode> node) {
+MiniProperty extractFromFoldedProperty(Ref<SkeletonNode> node) {
 
     varname=""
     varisVar=false

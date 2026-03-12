@@ -1,8 +1,8 @@
 package org.example._5codegen
 
-import org.example._3midparse.CompilationUnit
-import org.example._3midparse.MiniTypeAlias
 import org.example._3midparse.mapToFullName
+import org.example._3midparse.models.CompilationUnit
+import org.example._3midparse.models.MiniTypeAlias
 import org.example._4globalsymbols.GlobalSymbolTable
 import org.example._4globalsymbols.getDeclarations
 

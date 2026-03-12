@@ -1,12 +1,11 @@
 package org.example._5codegen
 
-import org.example._3midparse.CompilationUnit
-import org.example._3midparse.MiniClass
+import org.example._3midparse.models.MiniClass
 import org.example._3midparse.semanticResolveTypeFull
 import org.example._4globalsymbols.GlobalSymbolTable
 import org.example._4globalsymbols.getTableDeclarations
 
-fun generateStructDefinitions(unit: MutableList<CompilationUnit>, sb: StringBuilder, table: GlobalSymbolTable) {
+fun generateStructDefinitions(sb: StringBuilder, table: GlobalSymbolTable) {
     val classes = table.getTableDeclarations<MiniClass>()
     for (decl in classes) {
         val localSb = StringBuilder()
@@ -21,7 +20,7 @@ fun generateStructDefinitions(unit: MutableList<CompilationUnit>, sb: StringBuil
         // 2. Struct Declaration - NO KtObject for data classes
         localSb.append("struct ").append(decl.name.name)
         if (!decl.isData) {
-            localSb.append(" : public KtObject")
+            localSb.append(" : KtObject")
         }
         localSb.append(" {\n")
 

@@ -1,6 +1,6 @@
 package org.example._5codegen
 
-import org.example._3midparse.MiniFunction
+import org.example._3midparse.models.MiniFunction
 import org.example._3midparse.semanticResolveType
 import org.example._3midparse.semanticResolveTypeFull
 import org.example._4globalsymbols.GlobalSymbolTable

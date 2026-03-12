@@ -5,7 +5,7 @@ import org.example._2skeleton.SkeletonType
 import org.example._3midparse.semanticGetText
 import org.example._4globalsymbols.GlobalSymbolTable
 import org.example._0lex.TokenType
-import org.example._3midparse.MiniBody
+import org.example._3midparse.models.MiniBody
 
 fun generateFunctionBody(body: MiniBody, sb: StringBuilder, isExtension: Boolean, table: GlobalSymbolTable) {
     // 1. A function body in Kotlin is usually a BRACE node

@@ -1,6 +1,6 @@
 package org.example._5codegen
 
-import org.example._3midparse.CompilationUnit
+import org.example._3midparse.models.CompilationUnit
 import org.example._4globalsymbols.GlobalSymbolTable
 import org.example.common.writeFileAsText
 
@@ -24,7 +24,7 @@ fun generateOutputCode(
     generateCPlusPlusEnums(allUnits, finalCpp)
 
     // Pass 4: Struct Bodies (Now uses table to resolve field types)
-    generateStructDefinitions(allUnits, finalCpp, globalTable)
+    generateStructDefinitions(finalCpp, globalTable)
 
     // Pass 5: Function Signatures (The "Header" part of functions)
 
