@@ -186,9 +186,8 @@ fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
     var body: SkeletonNode? = null
 
     var funcType = inferFunctionType(node)
-    println("parse found function name: ${funcType.name}")
-    if (funcType.name == "getTableDeclarations") {
-        println("DEBUG: found special function")
+    if (funcType.name == "main") {
+        funcType = MiniType("kMain")
     }
 
     val receiverType = inferReceiverOfFunction(node)
@@ -204,8 +203,10 @@ fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
         }
     }
 
-    return MiniFunction(funcType, receiverType, params, returnParsedType, body)
+    var semBody = semanticBody(body)
+    return MiniFunction(funcType, receiverType, params, returnParsedType, semBody)
 }
+
 
 fun inferReturnFunctionType(node: SkeletonNode): MiniType {
     val children = node.children.toListView()
@@ -250,9 +251,7 @@ private fun inferFunctionType(node: SkeletonNode): MiniType {
     val indexOfParen = children.indexOfFirst { it.type == SkeletonType.PAREN }
 
     val functionExtractedName = children.get(indexOfParen - 1).token?.value!!
-    if (functionExtractedName == "getTableDeclarations") {
-        println("DEBUG: found special function")
-    }
+
     var funcType = functionExtractedName.nameToMiniType()
     if (hasGenerics) {
         val listOfNodes = listOf<SkeletonNode>(node.children.get(indexOfParen - 1), node.children.get(indexOfChevron))

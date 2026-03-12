@@ -8,12 +8,14 @@ class MiniProperty(val name: String, val type: MiniType, val isVar: Boolean, val
     }
 }
 
+data class MiniBody(val children: List<MiniBody>?, val node: SkeletonNode?)
+
 class MiniFunction(
     val name: MiniType,
     val receiverType: MiniType?,
     val params: List<MiniProperty>,
     val returnType: MiniType,
-    val body: SkeletonNode?
+    val body: MiniBody?
 )
 
 class MiniClass(

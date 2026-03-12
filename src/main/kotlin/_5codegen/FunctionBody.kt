@@ -5,9 +5,15 @@ import org.example._2skeleton.SkeletonType
 import org.example._3midparse.semanticGetText
 import org.example._4globalsymbols.GlobalSymbolTable
 import org.example._0lex.TokenType
+import org.example._3midparse.MiniBody
 
-fun generateFunctionBody(node: SkeletonNode, sb: StringBuilder, isExtension: Boolean, table: GlobalSymbolTable) {
+fun generateFunctionBody(body: MiniBody, sb: StringBuilder, isExtension: Boolean, table: GlobalSymbolTable) {
     // 1. A function body in Kotlin is usually a BRACE node
+    val node = body.node!!
+    generateFunctionBodyNode(node, sb, isExtension, table)
+}
+
+fun generateFunctionBodyNode(node: SkeletonNode, sb: StringBuilder, isExtension: Boolean, table: GlobalSymbolTable) {
     if (node.type == SkeletonType.BRACE) {
         sb.append(" {\n")
         for (child in node.children) {
@@ -25,19 +31,22 @@ fun generateFunctionBody(node: SkeletonNode, sb: StringBuilder, isExtension: Boo
 fun generateStatement(node: SkeletonNode, sb: StringBuilder, isExtension: Boolean, table: GlobalSymbolTable) {
     val type = node.type
 
-    if (type == SkeletonType.IF) generateIf(node, sb, isExtension, table)
-    else if (type == SkeletonType.WHILE) generateWhile(node, sb, isExtension, table)
-    else if (type == SkeletonType.FOR) generateFor(node, sb, isExtension, table)
-    else if (type == SkeletonType.PROPERTY) generateLocalVar(node, sb, isExtension, table)
+    val localSb = StringBuilder()
+    if (type == SkeletonType.IF) generateIf(node, localSb, isExtension, table)
+    else if (type == SkeletonType.WHILE) generateWhile(node, localSb, isExtension, table)
+    else if (type == SkeletonType.FOR) generateFor(node, localSb, isExtension, table)
+    else if (type == SkeletonType.PROPERTY) generateLocalVar(node, localSb, isExtension, table)
     else if (type == SkeletonType.ATOM) {
         // Handle loose atoms like return, break, or EOLN
-        generateExpression(node, sb, isExtension, table)
+        generateExpression(node, localSb, isExtension, table)
         if (node.token?.value == "\n") sb.append(";\n")
     } else {
         // Fallback for expression statements (function calls, etc.)
-        generateExpression(node, sb, isExtension, table)
-        sb.append(";\n")
+        generateExpression(node, localSb, isExtension, table)
+        localSb.append(";\n")
     }
+    val outText = localSb.toString();
+    sb.append(outText)
 }
 fun generateLocalVar(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: GlobalSymbolTable) {
     // node is a PROPERTY: [val/var] [name] [:] [Type] [=] [Expression...]
@@ -135,7 +144,7 @@ fun generateIf(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: Glo
     val thenIndex = node.children.indexOf(condNode) + 1
     if (thenIndex < node.children.size) {
         val thenNode = node.children[thenIndex]
-        generateBranch(thenNode, sb, isExt, table)
+        generateFunctionBodyNode(thenNode, sb, isExt, table)
     }
 
     // 3. Optional Else-Branch
@@ -143,14 +152,14 @@ fun generateIf(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: Glo
     if (elseIndex != -1 && elseIndex + 1 < node.children.size) {
         sb.append(" else ")
         val elseNode = node.children[elseIndex + 1]
-        generateBranch(elseNode, sb, isExt, table)
+        generateFunctionBodyNode(elseNode, sb, isExt, table)
     }
 }
 
 private fun generateBranch(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: GlobalSymbolTable) {
     if (node.type == SkeletonType.BRACE) {
         // It's a block { ... }
-        generateFunctionBody(node, sb, isExt, table)
+        generateFunctionBodyNode(node, sb, isExt, table)
     } else {
         // It's a single statement/expression
         sb.append(" ")
@@ -246,5 +255,5 @@ fun generateFor(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: Gl
     sb.append(")")
 
     // The last child is the body
-    generateFunctionBody(node.children.last(), sb, isExt, table)
+    generateFunctionBodyNode(node.children.last(), sb, isExt, table)
 }

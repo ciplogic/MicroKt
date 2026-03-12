@@ -52,21 +52,3 @@ fun semanticExtractGenericParams(
     val rightSide = genericChildView.slice(indexOfComma + 1)
     semanticExtractGenericParams(rightSide, generics)}
 
-/**
- * Helper to split a list of nodes by commas (e.g., [T, ",", K] -> [[T], [K]])
- */
-private fun splitByComma(nodes: List<SkeletonNode>): List<List<SkeletonNode>> {
-    val result = mutableListOf<List<SkeletonNode>>()
-    var current = mutableListOf<SkeletonNode>()
-
-    for (node in nodes) {
-        if (node.token?.value == ",") {
-            if (current.isNotEmpty()) result.add(current)
-            current = mutableListOf()
-        } else {
-            current.add(node)
-        }
-    }
-    if (current.isNotEmpty()) result.add(current)
-    return result
-}

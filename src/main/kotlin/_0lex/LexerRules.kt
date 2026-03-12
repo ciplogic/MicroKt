@@ -104,7 +104,7 @@ fun getNumberLength(view: StringView): Int {
     return len
 }
 
-val multiCharOps = arrayOf("..", "==", "!=", "<=", ">=", "&&", "||", "->", "::", "++", "--")
+val multiCharOps = arrayOf("..<", "..", "==", "!=", "<=", ">=", "&&", "||", "->", "::", "++", "--")
 
 fun getOperatorLength(view: StringView): Int {
     // Check multi-char operators first

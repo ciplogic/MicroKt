@@ -43,7 +43,7 @@ fun foldEnum(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
         if (peekRes.value!!.value == "{") break
 
         // Use parseNext to handle nested parens/chevrons in the header
-        val headerNode = parseNext(scanner)
+        val headerNode = parseHeaderNext(scanner)
         if (headerNode.isError()) return headerNode
         node.children.add(headerNode.value!!)
     }
@@ -292,13 +292,9 @@ private fun foldLineConstruct(scanner: Scanner, type: SkeletonType): TResult<Ske
 
         if (t.type == TokenType.EOLN) {
             // CONSUME the EOLN as part of this construct
-            node.children.add(SkeletonNode(SkeletonType.ATOM, scanner.advance()))
             break
         }
-
-        val child = parseNext(scanner)
-        if (child.isError()) return child
-        node.children.add(child.value!!)
+        node.children.add(SkeletonNode(SkeletonType.ATOM, scanner.advance()))
     }
 
     return success(node)

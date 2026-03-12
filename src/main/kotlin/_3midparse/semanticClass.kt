@@ -30,10 +30,7 @@ private fun intermediateSemanticParseHeader(node: SkeletonNode): IntermediateSem
     val isData = dataIndexOf != -1
     val classIndexOf = childrenListView.indexOfFirst({ it.type == SkeletonType.ATOM && it.token?.value == "class" })
     val className = childrenListView.get(classIndexOf + 1).token?.value ?: ""
-    println("DEBUG: Class name: $className")
-    if (className == "PairRule") {
-        println("Special type detected")
-    }
+
     val chevronIndexOf = childrenListView.indexOfFirst({ it.type == SkeletonType.CHEVRON })
     val typeParams = mutableListOf<MiniType>()
     if (chevronIndexOf != -1) {

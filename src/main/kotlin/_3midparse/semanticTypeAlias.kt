@@ -13,7 +13,6 @@ import org.example.common.toListView
 // typealias Predicate<T> = (T) -> Boolean
 //
 fun semanticTypeAlias(node: SkeletonNode): MiniTypeAlias {
-
     var childrenListView = node.children.toListView()
     // 1. Find the Name in the header
     // The header typically looks like: [ATOM(enum), ATOM(class), ATOM(Name)]
@@ -52,7 +51,6 @@ fun extractParametersInTypeAlias(
         return
     }
 
-    println("children: $children")
     val indexOfComma = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token!!.value == "," }
     if (indexOfComma == -1) {
         parseIndividualParameter(children, parameters)

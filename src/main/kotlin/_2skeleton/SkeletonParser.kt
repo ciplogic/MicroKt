@@ -35,17 +35,6 @@ private val structuralRules = arrayOf(
     SkeletonRule("<", { s, m -> foldGroup(s, "<", ">", SkeletonType.CHEVRON) })
 
 )
-fun debugSkeletonNode(node: SkeletonNode): String {
-    val sb = StringBuilder()
-    for (child in node.children) {
-        if (child.type == SkeletonType.ATOM) {
-            sb.append(child.toString())
-        } else {
-            sb.append(debugSkeletonNode(child))
-        }
-    }
-    return sb.toString()
-}
 
 fun parseNext(scanner: Scanner): TResult<SkeletonNode> {
     // 1. Grab any modifiers up front
