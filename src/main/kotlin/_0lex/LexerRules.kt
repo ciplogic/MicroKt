@@ -4,6 +4,7 @@ import org.example.common.StringView
 import org.example.common.get
 import org.example.common.slice
 import org.example.common.startsWith
+import javax.swing.text.View
 
 // Define the functional interface for matching
 typealias LexerRule = (StringView) -> Int
@@ -105,20 +106,21 @@ fun getNumberLength(view: StringView): Int {
     return len
 }
 
-val multiCharOps = arrayOf("..<", "..", "==", "!=", "<=", ">=", "&&", "||", "->", "::", "++", "--")
 
 fun getOperatorLength(view: StringView): Int {
-    // Check multi-char operators first
-    for (op in multiCharOps) {
-        if (view.startsWith(op)) return op.length
-    }
 
     // Added '?' and '=' and '!' to the allowed single characters
     val c = view.get(0)
-    val singleOps = "+-*/%=<>!&|:.,()[]{}?;"
+    val singleOps = "()[]{}<>?;"
     if (singleOps.contains(c)) {
         return 1
-    } else return 0
+    }
+    val multiOps = "+-*/%&|^~.,=:!<>"
+    for (op in 0..<view.length) {
+        if (!multiOps.contains(view.get(op))) return op
+    }
+
+    return view.length
 }
 
 fun getStringLength(view: StringView): Int {

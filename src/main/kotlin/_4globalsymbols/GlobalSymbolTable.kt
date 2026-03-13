@@ -93,6 +93,12 @@ private fun extractTypeDeclarations(
 
 typealias SortyFunc = (SymbolInfo, SymbolInfo) -> Boolean
 
+fun swapInList(list: MutableList<SymbolInfo>, index1: Int, index2: Int) {
+    val temp = list[index1]
+    list[index1] = list[index2]
+    list[index2] = temp
+}
+
 fun shellSort(list: MutableList<SymbolInfo>, sortyFunc: SortyFunc) {
     var gap = list.size / 2
     while (gap > 0) {
@@ -102,8 +108,7 @@ fun shellSort(list: MutableList<SymbolInfo>, sortyFunc: SortyFunc) {
             while (j >= 0) {
                 var current = list[j]
                 if (sortyFunc(current, rightSideValue)) {
-                    list[i] = current
-                    list[j] = rightSideValue
+                    swapInList(list, j, i)
                 }
                 j -= gap
             }

@@ -12,7 +12,11 @@ data class IntermediateSemanticParseHeader(
     val classType: MiniType,
     val isData: Boolean,
     val remainderNodes: List<SkeletonNode>
-)
+) {
+    override fun toString(): String {
+        return classType.toString()
+    }
+}
 
 fun semanticLowerClass(node: SkeletonNode): MiniClass {
 

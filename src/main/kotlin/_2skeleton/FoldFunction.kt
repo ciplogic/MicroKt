@@ -55,13 +55,7 @@ fun isOpeningToken(token: Token): Boolean {
 fun parseBodyNext(scanner: Scanner, skeletonType: SkeletonType, closingTokenText: String): TResult<SkeletonNode> {
     val rootNode = SkeletonNode(skeletonType)
     while (!scanner.isAtEnd()) {
-        val lineTokens = mutableListOf<Token>()
-        while (!scanner.isAtEnd()) {
-            val peek = scanner.peek().value!!
-            if (peek.type == TokenType.EOLN) break
-            lineTokens.add(scanner.advance())
-        }
-        scanner.advance()
+        val lineTokens = scanner.linesTokens()
         if (lineTokens.isEmpty()) {
             continue
         }
@@ -75,7 +69,7 @@ fun parseBodyNext(scanner: Scanner, skeletonType: SkeletonType, closingTokenText
         val isOpening = isOpeningToken(lastToken)
         if (isOpening) {
             lineTokens.removeLast()
-            val bodyResult = parseBodyNext(scanner, SkeletonType.BRACE, "}")
+            val bodyResult = parseBodyNext(scanner, skeletonType, "}")
             if (bodyResult.isError()) return bodyResult
             skeleton.children.add(bodyResult.value!!)
 
@@ -86,7 +80,19 @@ fun parseBodyNext(scanner: Scanner, skeletonType: SkeletonType, closingTokenText
     return success(rootNode)
 }
 
-private fun tokensToStatement(tokens: List<Token>): SkeletonNode {
+fun Scanner.linesTokens(): MutableList<Token> {
+    val scanner = this
+    val lineTokens = mutableListOf<Token>()
+    while (!scanner.isAtEnd()) {
+        val peek = scanner.peek().value!!
+        if (peek.type == TokenType.EOLN) break
+        lineTokens.add(scanner.advance())
+    }
+    scanner.advance()
+    return lineTokens
+}
+
+fun tokensToStatement(tokens: List<Token>): SkeletonNode {
     val node = SkeletonNode(SkeletonType.STATEMENT)
     for (t in tokens) {
         node.children.add(SkeletonNode(SkeletonType.ATOM, t))

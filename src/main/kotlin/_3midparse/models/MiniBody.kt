@@ -3,7 +3,12 @@ package org.example._3midparse.models
 import org.example._2skeleton.SkeletonNode
 
 
-data class MiniBody(val children: List<MiniBody>?, val node: SkeletonNode?)
+data class MiniBody(val children: List<MiniBody>, val node: SkeletonNode?)
+{
+    override fun toString(): String {
+        return node?.toString() ?: ""
+    }
+}
 
 class MiniProperty(val name: String, val type: MiniType, val isVar: Boolean, val defaultInitialValue: String?) {
     override fun toString(): String {

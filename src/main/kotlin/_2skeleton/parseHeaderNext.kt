@@ -14,7 +14,7 @@ data class PairRule(
 
 typealias HeaderParserMapper = (Scanner) -> TResult<SkeletonNode>
 
-private val headerPairs = arrayOf(
+val headerPairs = arrayOf(
     PairRule("(", ")", SkeletonType.PAREN),
     PairRule("[", "]", SkeletonType.BRACKET),
     PairRule("<", ">", SkeletonType.CHEVRON),

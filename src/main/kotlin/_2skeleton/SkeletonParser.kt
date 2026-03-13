@@ -13,23 +13,38 @@ private val structuralRules = arrayOf(
     SkeletonRule("import", ::foldImport),
     SkeletonRule("typealias", ::foldTypeAlias),
     SkeletonRule("fun", ::foldFunction),
+    SkeletonRule("var", ::foldVar),
+    SkeletonRule("val", ::foldVar),
     SkeletonRule("class", ::foldClass)
 )
 
-fun parseStatement(scanner: Scanner, modifiers: List<Token>, skeletonType: SkeletonType = SkeletonType.STATEMENT ): TResult<SkeletonNode> {
+fun parseReservedWordStatement(scanner: Scanner, modifiers: List<Token>, skeletonType: SkeletonType = SkeletonType.STATEMENT ): TResult<SkeletonNode> {
+    val tokens = scanner.linesTokens()
+
     val node = SkeletonNode(skeletonType)
     node.children.addAll(modifiersToAtoms(modifiers))
-    while (!scanner.isAtEnd()) {
-        val res = parseNext(scanner)
-        if (res.isError()) return res.asError()
-        node.children.add(res.value!!)
+    node.children.add(SkeletonNode(SkeletonType.ATOM, scanner.advance())) // consume reserved word
+    val lastToken = tokens.last()
+    val isOpenParen = lastToken.value == "("
+    if (isOpenParen) {
+        tokens.removeLast()
     }
+    for (token in tokens) {
+        node.children.add(SkeletonNode(SkeletonType.ATOM, token))
+    }
+    if (isOpenParen) {
+        val bodyParse = parseBodyNext(scanner, SkeletonType.PAREN, ")")
+        if (bodyParse.isError()) return bodyParse.asError()
+        node.children.add(bodyParse.value!!)
+    }
+
     return success(node)
 }
 
+
 fun parseNext(scanner: Scanner): TResult<SkeletonNode> {
     // 1. Grab any modifiers up front
-    val modifiers = scanner.accumulateModifiers()
+    var modifiers = scanner.accumulateModifiers()
 
     var res = scanner.peek()
     if (res.isError()) {
@@ -37,12 +52,13 @@ fun parseNext(scanner: Scanner): TResult<SkeletonNode> {
     }
     if (res.value?.type == TokenType.EOLN) {
         scanner.advance()
+
+        modifiers = scanner.accumulateModifiers()
         res = scanner.peek()
     }
 
     val token = res.value!!
     val text = token.value
-    //println("DEBUG: Dispatching ${token.value} at ${scanner.errorAt(token.value.start)}")
 
     if (res.value.type != TokenType.KEYWORD) {
         scanner.advance()
@@ -65,6 +81,9 @@ fun parseNext(scanner: Scanner): TResult<SkeletonNode> {
     return result
 }
 
+fun foldVar(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
+    return parseReservedWordStatement(scanner, modifiers, SkeletonType.CONSTRUCT)
+}
 
 fun Scanner.accumulateModifiers(): List<Token> {
     val modifiers = mutableListOf<Token>()

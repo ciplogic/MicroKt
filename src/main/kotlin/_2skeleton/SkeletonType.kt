@@ -20,6 +20,7 @@ enum class SkeletonType {
     STATEMENT,
     FUNCTION,
     PROPERTY,
+    VAR,
 }
 
 

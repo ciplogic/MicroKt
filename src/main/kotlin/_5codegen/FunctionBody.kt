@@ -90,6 +90,7 @@ fun generateLocalVar(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, tabl
 }
 
 fun generateExpression(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, table: GlobalSymbolTable) {
+    sb.append(" ")
     if (node.type == SkeletonType.ATOM) {
         val t = node.token!!
         val text = t.value
