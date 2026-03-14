@@ -1,6 +1,7 @@
 package org.example._5codegen
 
 import org.example._2skeleton.SkeletonType
+import org.example._3midparse.models.MiniClass
 import org.example._4globalsymbols.GlobalSymbolTable
 
 fun generateCPlusPlusPreamble(table: GlobalSymbolTable): String {
@@ -18,6 +19,9 @@ fun generateCPlusPlusPreamble(table: GlobalSymbolTable): String {
 
     for (symbol in table.symbols) {
         if (symbol.type == SkeletonType.CLASS) {
+            val miniClass = symbol.decl as MiniClass
+            if (miniClass.isBuiltIn) continue
+
             // 1. Handle Templates: template <typename T>
             if (symbol.name.generics.isNotEmpty()) {
                 sb.append("template <")

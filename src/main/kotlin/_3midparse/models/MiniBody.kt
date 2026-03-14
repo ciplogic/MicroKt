@@ -2,7 +2,6 @@ package org.example._3midparse.models
 
 import org.example._2skeleton.SkeletonNode
 
-
 data class MiniBody(val children: List<MiniBody>, val node: SkeletonNode?)
 {
     override fun toString(): String {
@@ -27,7 +26,8 @@ class MiniFunction(
 class MiniClass(
     val name: MiniType,
     val isData: Boolean,
-    val properties: List<MiniProperty>
+    val properties: List<MiniProperty>,
+    val isBuiltIn: Boolean = false
 ) {
     override fun toString(): String {
         return name.toString()

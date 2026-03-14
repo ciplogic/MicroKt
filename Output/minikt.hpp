@@ -23,7 +23,16 @@ using Char = wchar_t;
 
 struct File {
     String name;
+
+    String readText();
+
+    void writeText(const String & content);
+
+    bool exists();
+    bool isDirectory();
+    bool isFile();
 };
+
 
 // Helper for 'null' which maps to nullptr
 #define null nullptr
@@ -45,6 +54,15 @@ struct  List {
 
 template <typename T>
 using MutableList = List<T>;
+
+template <typename T>
+List<T> emptyList() {
+    return {};
+}
+template <typename T>
+MutableList<T> mutableListOf() {
+    return {};
+}
 
 template <typename T>
 using Array = List<T>;

@@ -102,6 +102,10 @@ fun generateExpression(node: SkeletonNode, sb: StringBuilder, isExt: Boolean, ta
             sb.append("->")
         } else if (text == "null") {
             sb.append("nullptr")
+        } else if (text == "val") {
+            sb.append("auto")
+        } else if (text == "var") {
+            sb.append("auto")
         } else if (text == "true") {
             sb.append("true")
         } else if (text == "false") {

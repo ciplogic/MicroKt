@@ -64,6 +64,14 @@ fun semanticCollectSymbols(units: List<CompilationUnit>): TResult<GlobalSymbolTa
     return success(table)
 }
 
+fun GlobalSymbolTable.registerTypeByRef(typeName: MiniType, isData: Boolean) {
+    this.symbols.add(SymbolInfo(typeName, isData, SkeletonType.CLASS, ""))
+}
+
+fun GlobalSymbolTable.registerType(typeName: String, isData: Boolean) {
+    registerTypeByRef(typeName.nameToMiniType(), isData)
+}
+
 private fun extractTypeDeclarations(
     units: List<CompilationUnit>,
     table: GlobalSymbolTable
@@ -113,10 +121,28 @@ fun shellSort(list: MutableList<SymbolInfo>, sortyFunc: SortyFunc) {
                 j -= gap
             }
         }
-        gap /= 2
+        gap -= 1
     }
 }
 
+
+fun shellSort2(list: MutableList<SymbolInfo>, sortyFunc: SortyFunc) {
+    var gap = list.size / 2
+    while (gap > 0) {
+        for (i in gap..<list.size) {
+            val rightSideValue = list[i]
+            var j = i - gap
+            while (j >= 0) {
+                var current = list[j]
+                if (sortyFunc(current, rightSideValue)) {
+                    swapInList(list, j, i)
+                }
+                j -= gap
+            }
+        }
+        gap /= 2
+    }
+}
 
 fun getDependentTypesOfMiniClass(decl: MiniClass): List<MiniType> {
     return decl.properties.map { it.type }

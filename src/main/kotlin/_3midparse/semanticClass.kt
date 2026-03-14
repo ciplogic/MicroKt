@@ -23,7 +23,7 @@ fun semanticLowerClass(node: SkeletonNode): MiniClass {
     val intermediate = intermediateSemanticParseHeader(node)
 
     val properties = semanticExtractClassProperties(intermediate.remainderNodes)
-    return MiniClass(intermediate.classType, intermediate.isData, properties)
+    return MiniClass(intermediate.classType, intermediate.isData, properties,)
 }
 
 private fun intermediateSemanticParseHeader(node: SkeletonNode): IntermediateSemanticParseHeader {

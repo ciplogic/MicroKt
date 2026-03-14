@@ -9,6 +9,7 @@ import org.example._2skeleton.SkeletonType
 import org.example._2skeleton.parseNext
 import org.example._3midparse.models.CompilationUnit
 import org.example._3midparse.semanticAnalyze
+import org.example._4globalsymbols.createRuntimeUnit
 import org.example._4globalsymbols.semanticCollectSymbols
 import org.example._5codegen.generateOutputCode
 import org.example.common.isError
@@ -29,12 +30,15 @@ fun main(args: Array<String>) {
     parseFileToCompilationUnit(File("src/main/kotlin/_0lex/LexerRules.kt"))
     val kotlinFiles = scanFolderByExtension("src/main", "kt")
     val allUnits = parseFilesToUnits(kotlinFiles)
+    allUnits.add(createRuntimeUnit())
+
     // After lowering all files into a list 'allUnits'
     val tableResult = semanticCollectSymbols(allUnits)
     if (tableResult.isError()) {
         println("SYMBOL ERROR: ${tableResult.errorMessage}")
         return
     }
+
     val globalTable = tableResult.value!!
 
     // Now you have a list of all CompilationUnits for the C++ Generator

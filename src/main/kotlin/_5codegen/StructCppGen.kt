@@ -8,6 +8,7 @@ import org.example._4globalsymbols.getTableDeclarations
 fun generateStructDefinitions(sb: StringBuilder, table: GlobalSymbolTable) {
     val classes = table.getTableDeclarations<MiniClass>()
     for (decl in classes) {
+        if (decl.isBuiltIn) continue
         val localSb = StringBuilder()
         localSb.append("// Class: ").append(decl.name).append("\n")
 
@@ -27,7 +28,6 @@ fun generateStructDefinitions(sb: StringBuilder, table: GlobalSymbolTable) {
         // 3. Properties: Type Name;
         generateCppStructProperty(decl, table, localSb)
 
-        localSb.append("\n    ").append(decl.name.name).append("() = default;\n")
         localSb.append("};\n\n")
 
         sb.append(localSb)
