@@ -6,22 +6,6 @@ import org.example._3midparse.models.*
 import org.example._3midparse.nameToMiniType
 import org.example.common.*
 
-class SymbolInfo(
-    val name: MiniType,
-    val isData: Boolean,
-    val type: SkeletonType,
-    val decl: Any
-) {
-    override fun toString(): String {
-        return name.toString()
-    }
-}
-
-class GlobalSymbolTable(
-    val symbols: MutableList<SymbolInfo> = mutableListOf(),
-    val functions: MutableList<SymbolInfo> = mutableListOf()
-)
-
 
 inline fun <reified T> GlobalSymbolTable.getTableDeclarations(): List<T> {
     val result = mutableListOf<T>()
@@ -58,18 +42,19 @@ fun semanticCollectSymbols(units: List<CompilationUnit>): TResult<GlobalSymbolTa
     // 3. Process Functions (Signatures)
     val functions: List<MiniFunction> = units.getDeclarations<MiniFunction>()
     for (decl in functions) {
-        table.functions.add(SymbolInfo(decl.name, false, SkeletonType.FUNCTION, decl))
+        val symbolInfo = SymbolInfo(SymbolType.Function, decl.name, SkeletonType.FUNCTION, decl)
+        table.functions.add(symbolInfo)
     }
 
     return success(table)
 }
 
-fun GlobalSymbolTable.registerTypeByRef(typeName: MiniType, isData: Boolean) {
-    this.symbols.add(SymbolInfo(typeName, isData, SkeletonType.CLASS, ""))
+fun GlobalSymbolTable.registerTypeByRef(typeName: MiniType, symbolType: SymbolType) {
+    this.symbols.add(SymbolInfo(symbolType, typeName, SkeletonType.CLASS, ""))
 }
 
-fun GlobalSymbolTable.registerType(typeName: String, isData: Boolean) {
-    registerTypeByRef(typeName.nameToMiniType(), isData)
+fun GlobalSymbolTable.registerType(typeName: String, symbolType: SymbolType) {
+    registerTypeByRef(typeName.nameToMiniType(), symbolType)
 }
 
 private fun extractTypeDeclarations(
@@ -82,7 +67,8 @@ private fun extractTypeDeclarations(
         if (semanticFindSymbol(table.symbols, decl.name) != null) {
             return error("Duplicate class: ${decl.name}")
         }
-        table.symbols.add(SymbolInfo(decl.name, decl.isData, SkeletonType.CLASS, decl))
+        val symbolInfo = SymbolInfo(SymbolType.Class, decl.name, SkeletonType.CLASS, decl)
+        table.symbols.add(symbolInfo)
     }
 
     // 2. Process Enums
@@ -91,7 +77,8 @@ private fun extractTypeDeclarations(
         if (semanticFindSymbol(table.symbols, decl.name.nameToMiniType()) != null) {
             return error("Duplicate enum: ${decl.name}")
         }
-        table.symbols.add(SymbolInfo(decl.name.nameToMiniType(), true, SkeletonType.ENUM, decl))
+        val symbolInfo = SymbolInfo(SymbolType.Enum, decl.name.nameToMiniType(), SkeletonType.ENUM, decl)
+        table.symbols.add(symbolInfo)
     }
 
     shellSort(table.symbols, ::shouldSymbolsBeFlipped)
@@ -115,11 +102,11 @@ fun shellSort(list: MutableList<SymbolInfo>, shouldFlipOrder: ShouldFlipOrderFun
     while (isRerored) {
         isRerored = false
         for (i in 0..<list.size) {
-            for (j in i+1..<list.size)
-            if (shouldFlipOrder(list[i], list[j])) {
-                swapInList(list, i, j)
-                isRerored = true
-            }
+            for (j in i + 1..<list.size)
+                if (shouldFlipOrder(list[i], list[j])) {
+                    swapInList(list, i, j)
+                    isRerored = true
+                }
         }
     }
 }

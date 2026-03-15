@@ -6,6 +6,10 @@ import org.example.common.asError
 import org.example.common.isError
 import org.example.common.success
 
+// A FoldRule takes the scanner and returns a specific structured node
+typealias FoldRule = (Scanner, List<Token>) -> TResult<SkeletonNode>
+class SkeletonRule(val trigger: String, val folder: FoldRule)
+
 // Shared rules array
 private val structuralRules = arrayOf(
     SkeletonRule("enum", ::foldEnum),
@@ -23,7 +27,6 @@ fun parseReservedWordStatement(scanner: Scanner, modifiers: List<Token>, skeleto
 
     val node = SkeletonNode(skeletonType)
     node.children.addAll(modifiersToAtoms(modifiers))
-    node.children.add(SkeletonNode(SkeletonType.ATOM, scanner.advance())) // consume reserved word
     val lastToken = tokens.last()
     val isOpenParen = lastToken.value == "("
     if (isOpenParen) {
@@ -71,7 +74,7 @@ fun parseNext(scanner: Scanner): TResult<SkeletonNode> {
         scanner.advance()
         return success(SkeletonNode(SkeletonType.ATOM, token))
     }
-    val rule = structuralRules[indexOfRule]
+    val rule = structuralRules.get(indexOfRule)
 
     // Pass the accumulated modifiers into the strategy
     val result = rule.folder(scanner, modifiers)
@@ -82,7 +85,8 @@ fun parseNext(scanner: Scanner): TResult<SkeletonNode> {
 }
 
 fun foldVar(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
-    return parseReservedWordStatement(scanner, modifiers, SkeletonType.CONSTRUCT)
+    val resultNode = parseReservedWordStatement(scanner, modifiers, SkeletonType.VAR)
+    return resultNode
 }
 
 fun Scanner.accumulateModifiers(): List<Token> {

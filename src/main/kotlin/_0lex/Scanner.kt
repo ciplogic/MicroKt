@@ -48,10 +48,10 @@ fun Scanner.peek(): TResult<Token> {
     if (match != null) {
         // Note: We don't advance 'pos' here, just view the token
         return success(Token(match.type, source.slice(pos, pos + match.length).toString()))
-    } else {
-        val location = errorAt(currentView.start)
-        return error("Lexer error at $location: Unknown character '${source.get(pos)}'")
     }
+    
+    val location = errorAt(currentView.start)
+    return error("Lexer error at $location: Unknown character '${source.get(pos)}'")
 }
 
 fun Scanner.errorAt(pos: Int): String {

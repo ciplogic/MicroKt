@@ -23,8 +23,3 @@ enum class SkeletonType {
     VAR,
 }
 
-
-// A FoldRule takes the scanner and returns a specific structured node
-typealias FoldRule = (Scanner, List<Token>) -> TResult<SkeletonNode>
-
-class SkeletonRule(val trigger: String, val folder: FoldRule)

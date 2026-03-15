@@ -18,14 +18,6 @@ import org.example.common.scanFolderByExtension
 import org.example.common.toView
 import java.io.File
 
-fun Token.toDisplayString(): String {
-    // If it's an EOLN, just show a single symbolic marker
-    if (this.type == TokenType.EOLN) return "\\n"
-
-    // Otherwise, return the actual text from the StringView
-    return this.value
-}
-
 fun main(args: Array<String>) {
     parseFileToCompilationUnit(File("src/main/kotlin/_0lex/LexerRules.kt"))
     val kotlinFiles = scanFolderByExtension("src/main", "kt")
@@ -90,7 +82,7 @@ fun printNode(node: SkeletonNode, indent: Int) {
     // Handle single tokens (Atoms)
     if (node.type == SkeletonType.ATOM) {
         val token = node.token!!
-        println("$prefix${token.toDisplayString()}")
+        println("$prefix$token")
         return
     }
 

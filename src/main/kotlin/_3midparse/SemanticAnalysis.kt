@@ -4,10 +4,12 @@ import org.example._0lex.TokenType
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
 import org.example._3midparse.models.CompilationUnit
+import org.example._3midparse.models.MiniClass
 import org.example._3midparse.models.MiniFunction
 import org.example._3midparse.models.MiniProperty
 import org.example._3midparse.models.MiniType
 import org.example._4globalsymbols.GlobalSymbolTable
+import org.example._4globalsymbols.SymbolType
 import org.example._4globalsymbols.semanticFindSymbol
 import org.example.common.*
 
@@ -92,7 +94,6 @@ fun semanticGetText(node: SkeletonNode): String {
 }
 
 fun extractFromFoldedProperty(node: SkeletonNode): MiniProperty {
-    var name = ""
     var isVar = false
 
     var childView = node.children.toListView()
@@ -106,7 +107,7 @@ fun extractFromFoldedProperty(node: SkeletonNode): MiniProperty {
         childView = childView.slice(1)
     }
     val nameToken = childView.get(0).token!!
-    name = nameToken.value
+    var name = nameToken.value
     childView = childView.slice(2)
 
     val indexOfAssign = childView.indexOfFirst { it.token?.value == "=" }
@@ -125,7 +126,9 @@ fun extractFromFoldedProperty(node: SkeletonNode): MiniProperty {
 }
 
 fun foldLocalPropertiesFromAtoms(children: List<SkeletonNode>): List<SkeletonNode> {
-    if (children.isEmpty()) return emptyList()
+    if (children.isEmpty()) {
+        return emptyList()
+    }
 
     val result = mutableListOf<SkeletonNode>()
     var pos = 0
@@ -198,8 +201,7 @@ fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
     val returnParsedType = inferReturnFunctionType(node)
 
     for (child in node.children) {
-        if (child.type == SkeletonType.CHEVRON) {
-        } else if (child.type == SkeletonType.PAREN) {
+        if (child.type == SkeletonType.PAREN) {
             // FIX: Extract (fileName: String) into the params list
             semanticExtractProperties(child, params)
         } else if (child.type == SkeletonType.BRACE) {
@@ -269,9 +271,12 @@ fun semanticResolveType(name: MiniType, table: GlobalSymbolTable): String {
     // 1. Check if it's a known class/enum
     val symbol = semanticFindSymbol(table.symbols, name)
 
-    if (symbol != null) {
-        // If it's a regular class (not data, not enum), it must be Ref-counted
-        if (!symbol.isData && symbol.type == SkeletonType.CLASS) {
+    // If it's a regular class (not data, not enum), it must be Ref-counted
+    if (symbol != null && symbol.symbolType == SymbolType.Class) {
+        val symbolIndex = table.symbols.indexOfFirst { it.name == symbol.name }
+        val symbol = table.symbols.get(symbolIndex)
+        val classData = symbol.decl as MiniClass
+        if (!classData.isData) {
             return "Ref<" + name.name.nameToMiniType() + ">"
         }
     }

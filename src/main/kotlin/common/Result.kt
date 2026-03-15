@@ -1,26 +1,23 @@
 package org.example.common
 
-data class TResult<T>(val value: T?, val errorMessage: String?)
+data class TResult<T>(val value: T?, val errorMessage: String)
 
 fun <T, R> TResult<T>.asError(): TResult<R> {
     return TResult<R>(null, errorMessage)
 }
 
 fun <T> TResult<T>.isSuccess(): Boolean {
-    return value != null
+    return errorMessage.isEmpty()
 }
 
 fun <T> TResult<T>.isError(): Boolean {
-    return errorMessage != null
+    return !isSuccess()
 }
 
 fun <T> success(value: T): TResult<T> {
-    return TResult(value, null)
+    return TResult<T>(value, "")
 }
-typealias ActionOf<T> = (T) -> Unit
+fun <T> error(errMessage: String): TResult<T> {
+    return TResult<T>(null, errMessage)
+}
 
-// Global helper for the Parser
-fun <T> TResult<T>.onSuccess(block: ActionOf<T>): TResult<T> {
-    if (!isError()) block(value!!)
-    return this
-}

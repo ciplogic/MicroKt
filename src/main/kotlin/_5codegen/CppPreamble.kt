@@ -12,7 +12,7 @@ fun generateCPlusPlusPreamble(table: GlobalSymbolTable): String {
     for (symbol in table.symbols) {
         // Enums in C++11+ can be forward declared if we specify the underlying type
         if (symbol.type == SkeletonType.ENUM) {
-            sb.append("enum class ").append(symbol.name).append(" : Int;\n")
+            sb.append("enum class ${symbol.name} : Int;\n")
             continue
         }
     }
@@ -25,15 +25,16 @@ fun generateCPlusPlusPreamble(table: GlobalSymbolTable): String {
             // 1. Handle Templates: template <typename T>
             if (symbol.name.generics.isNotEmpty()) {
                 sb.append("template <")
-                for (i in 0 until symbol.name.generics.size) {
-                    sb.append("typename ").append(symbol.name.generics[i])
+                for (i in 0..< symbol.name.generics.size) {
+                    val templateItem = "typename ${symbol.name.generics.get(i)}"
+                    sb.append(templateItem)
                     if (i < symbol.name.generics.size - 1) sb.append(",")
                 }
                 sb.append(">\n")
             }
 
             // 2. Declare the struct
-            sb.append("struct ").append(symbol.name.name).append(";\n")
+            sb.append("struct ${symbol.name.name} ;\n")
         }
     }
 

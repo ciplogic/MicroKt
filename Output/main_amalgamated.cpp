@@ -3,37 +3,36 @@
 // --- Forward Declarations ---
 enum class TokenType : Int;
 enum class SkeletonType : Int;
-struct CppExternal;
-struct PairRule;
-struct Token;
-struct SkeletonRule;
-struct SkeletonNode;
-struct MiniType;
-struct MiniBody;
-struct MiniClass;
-struct MiniTypeAlias;
-struct MiniProperty;
-struct MiniEnum;
-struct CompilationUnit;
-struct CompilationUnitHandler;
-struct IntermediateSemanticParseHeader;
-struct SymbolInfo;
-struct GlobalSymbolTable;
+enum class SymbolType : Int;
+struct CppExternal ;
+struct Token ;
+struct SkeletonRule ;
+struct SkeletonNode ;
+struct MiniType ;
+struct MiniBody ;
+struct MiniClass ;
+struct MiniTypeAlias ;
+struct MiniProperty ;
+struct MiniEnum ;
+struct CompilationUnit ;
+struct CompilationUnitHandler ;
+struct IntermediateSemanticParseHeader ;
+struct SymbolInfo ;
+struct GlobalSymbolTable ;
 template <typename T>
-struct ListView;
+struct ListView ;
 template <typename T>
-struct TResult;
-struct StringView;
-struct MatchPair;
-struct MatchResult;
-struct Scanner;
-struct MiniFunction;
+struct TResult ;
+struct StringView ;
+struct MatchPair ;
+struct MatchResult ;
+struct Scanner ;
+struct MiniFunction ;
+struct PairRule ;
 
 // --- Type Aliases ---
 template <typename T>
 using Predicate = Func<Boolean(T)>;
-template <typename T>
-using ActionOf = Func<Unit(T)>;
 using LexerRule = Func<Int(StringView)>;
 using HeaderParserMapper = Func<TResult<SkeletonNode>(Scanner)>;
 using FoldRule = Func<TResult<SkeletonNode>(Scanner, List<Token>)>;
@@ -73,15 +72,17 @@ enum class SkeletonType : Int {
     VAR
 };
 
-// Class: CppExternal
-struct CppExternal : KtObject {
+// Enum: SymbolType
+enum class SymbolType : Int {
+    Unknown,
+    Enum,
+    Function,
+    Variable,
+    Class
 };
 
-// Class: PairRule
-struct PairRule {
-    String open;
-    String close;
-    SkeletonType type;
+// Class: CppExternal
+struct CppExternal : KtObject {
 };
 
 // Class: Token
@@ -167,8 +168,8 @@ struct IntermediateSemanticParseHeader {
 
 // Class: SymbolInfo
 struct SymbolInfo : KtObject {
+    SymbolType symbolType;
     MiniType name;
-    Boolean isData;
     SkeletonType type;
     Any decl;
 };
@@ -228,6 +229,13 @@ struct MiniFunction : KtObject {
     MiniBody body;
 };
 
+// Class: PairRule
+struct PairRule {
+    String open;
+    String close;
+    SkeletonType type;
+};
+
 // --- Function Signatures ---
 
 String readFileAsText(String fileName);
@@ -279,7 +287,7 @@ template <typename T>
 TResult<T> success(T value);
 
 template <typename T>
-TResult<T> onSuccess(TResult<T> self, ActionOf<T> block);
+TResult<T> error(String errMessage);
 
 StringView slice(StringView self, Int start, Int end);
 
@@ -294,8 +302,6 @@ Boolean isNotEmpty(StringView self);
 Boolean startsWith(StringView self, String prefix);
 
 StringView toView(String self);
-
-String toDisplayString(Token self);
 
 void kMain(Array<String> args);
 
@@ -336,6 +342,8 @@ Boolean isModifier(String text);
 void skipWhiteSpaces(Ref<Scanner> self);
 
 TResult<Token> peek(Ref<Scanner> self);
+
+String errorAt(Ref<Scanner> self, Int pos);
 
 List<SkeletonNode> modifiersToAtoms(List<Token> modifiers);
 
@@ -460,9 +468,9 @@ List<MiniFunction> getTableFunctions(Ref<GlobalSymbolTable> self);
 
 TResult<GlobalSymbolTable> semanticCollectSymbols(List<CompilationUnit> units);
 
-void registerTypeByRef(Ref<GlobalSymbolTable> self, MiniType typeName, Boolean isData);
+void registerTypeByRef(Ref<GlobalSymbolTable> self, MiniType typeName, SymbolType symbolType);
 
-void registerType(Ref<GlobalSymbolTable> self, String typeName, Boolean isData);
+void registerType(Ref<GlobalSymbolTable> self, String typeName, SymbolType symbolType);
 
 TResult<GlobalSymbolTable> extractTypeDeclarations(List<CompilationUnit> units, Ref<GlobalSymbolTable> table);
 
@@ -592,20 +600,19 @@ TResult<R> asError(TResult<T> self) {
 }
 template <typename T>
 Boolean isSuccess(TResult<T> self) {
-  return value != nullptr;
+  return errorMessage -> isEmpty ();
 }
 template <typename T>
 Boolean isError(TResult<T> self) {
-  return errorMessage != nullptr;
+  return ! isSuccess ();
 }
 template <typename T>
 TResult<T> success(T value) {
-  return TResult ( value , nullptr);
+  return TResult < T > ( value , "");
 }
 template <typename T>
-TResult<T> onSuccess(TResult<T> self, ActionOf<T> block) {
-  if ( ! isError ()) block ( value !!);
-  return self;
+TResult<T> error(String errMessage) {
+  return TResult < T > ( nullptr , errMessage);
 }
 StringView slice(StringView self, Int start, Int end) {
   return StringView ( value , self -> start + start , end - start);
@@ -629,10 +636,6 @@ Boolean startsWith(StringView self, String prefix) {
 }
 StringView toView(String self) {
   return StringView ( self , 0 , self -> length);
-}
-String toDisplayString(Token self) {
-  if ( self -> type == TokenType -> EOLN) return "\\n";
-  return self -> value;
 }
 void kMain(Array<String> args) {
   parseFileToCompilationUnit ( File ( "src/main/kotlin/_0lex/LexerRules.kt"));
@@ -662,7 +665,7 @@ Ref<CompilationUnit> parseFileToCompilationUnit(File file) {
 }
 void printNode(Ref<SkeletonNode> node, Int indent) {
   auto prefix = "  " -> repeat ( indent);
-  if ( node -> type == SkeletonType -> ATOM) {   auto token = node -> token !!  println ( "$prefix${token.toDisplayString()}")  return;
+  if ( node -> type == SkeletonType -> ATOM) {   auto token = node -> token !!  println ( "$prefix$token")  return;
   auto open = node -> type -> toString ();
   auto close = "";
   if ( node -> type == SkeletonType -> PAREN) {   open = "("  close = ")"  } else if ( node -> type == SkeletonType -> BRACE) {   open = "{"  close = "}"  } else if ( node -> type == SkeletonType -> BRACKET) {   open = "["  close = "]"  } else if ( node -> type == SkeletonType -> CHEVRON) {   open = "<"  close = ">"  if ( close == "") {   println ( prefix + open + " {")  } else {   println ( prefix + open)  if ( close -> isEmpty ()) {   println ( "$prefix$open {")  } else {   println ( "$prefix$open")  for ( child in node -> children) {   printNode ( child , indent + 1)  if ( close -> isEmpty ()) {   println ( "$prefix}")  } else {   println ( "$prefix$close");
@@ -749,8 +752,20 @@ TResult<Token> peek(Ref<Scanner> self) {
   if ( pos > = source -> length) {   return success ( Token ( TokenType -> EndOfFile , ""));
   auto currentView = source -> slice ( pos);
   auto match = findMatch ( currentView);
-  if ( match != nullptr) {   return success ( Token ( match -> type , source -> slice ( pos , pos + match -> length) -> toString ()))  } else {   auto location = errorAt ( currentView -> start)  return error ( "Lexer error at $location: Unknown character '${source.get(pos)}'");
-  fun Scanner -> errorAt ( pos : Int) : String {   auto line = 1  auto col = 1  for ( i in 0 until pos) {   if ( source -> value [ i ] == '\n') {   line ++  col = 1  } else {   col ++  return "($line,$col)"  fun Scanner -> advance () : Token {   auto res = peek ()  if ( res -> isError ()) {   pos ++  return Token ( TokenType -> None , source -> slice ( pos - 1 , 1) -> toString ())  auto token = res -> value !!  pos += token -> value -> length  return token  fun Scanner -> isAtEnd () : Boolean {   skipWhiteSpaces ()  return pos > = source -> length  fun Scanner -> peekText () : String {   return peek () -> value ? -> value ? : ""  fun Scanner -> skipIf ( text : String) : Boolean {   if ( peekText () == text) {   advance ()  return true  return false  fun Scanner -> expect ( text : String , nodeType : SkeletonType) : TResult < SkeletonNode > {   auto tokenRes = peek ()  if ( tokenRes -> isError ()) return tokenRes -> asError ()  auto token = tokenRes -> value !!  if ( token -> value != text) {   return error ( "Expected '$text' but found '${token.value}' at ${errorAt(pos)}")  advance ()  return success ( SkeletonNode ( nodeType , token))  fun Scanner -> match ( text : String) : TResult < Token > {   auto res = self -> peek ()  if ( res -> isError ()) return res -> asError ()  auto token = res -> value !!  if ( token -> value == text) {   self -> advance ()  return success ( token)  return error ( "Expected '$text' but found '${token.value}' at ${this.errorAt(this.pos)}");
+  if ( match != nullptr) {   return success ( Token ( match -> type , source -> slice ( pos , pos + match -> length) -> toString ()));
+  auto location = errorAt ( currentView -> start);
+  return error ( "Lexer error at $location: Unknown character '${source.get(pos)}'");
+}
+String errorAt(Ref<Scanner> self, Int pos) {
+  auto line = 1;
+  auto col = 1;
+  for ( i in 0 until pos) {   if ( source -> value [ i ] == '\n') {   line ++  col = 1  } else {   col ++  return "($line,$col)";
+  fun Scanner -> advance () : Token {   auto res = peek ()  if ( res -> isError ()) {   pos ++  return Token ( TokenType -> None , source -> slice ( pos - 1 , 1) -> toString ())  auto token = res -> value !!  pos += token -> value -> length  return token;
+  fun Scanner -> isAtEnd () : Boolean {   skipWhiteSpaces ()  return pos > = source -> length;
+  fun Scanner -> peekText () : String {   return peek () -> value ? -> value ? : "";
+  fun Scanner -> skipIf ( text : String) : Boolean {   if ( peekText () == text) {   advance ()  return true  return false;
+  fun Scanner -> expect ( text : String , nodeType : SkeletonType) : TResult < SkeletonNode > {   auto tokenRes = peek ()  if ( tokenRes -> isError ()) return tokenRes -> asError ()  auto token = tokenRes -> value !!  if ( token -> value != text) {   return error ( "Expected '$text' but found '${token.value}' at ${errorAt(pos)}")  advance ()  return success ( SkeletonNode ( nodeType , token));
+  fun Scanner -> match ( text : String) : TResult < Token > {   auto res = self -> peek ()  if ( res -> isError ()) return res -> asError ()  auto token = res -> value !!  if ( token -> value == text) {   self -> advance ()  return success ( token)  return error ( "Expected '$text' but found '${token.value}' at ${this.errorAt(this.pos)}");
 }
 List<SkeletonNode> modifiersToAtoms(List<Token> modifiers) {
   auto result = mutableListOf < SkeletonNode > ();
@@ -906,7 +921,6 @@ TResult<SkeletonNode> parseReservedWordStatement(Ref<Scanner> scanner, List<Toke
   auto tokens = scanner -> linesTokens ();
   auto node = SkeletonNode ( skeletonType);
   node -> children -> addAll ( modifiersToAtoms ( modifiers));
-  node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()));
   auto lastToken = tokens -> last ();
   auto isOpenParen = lastToken -> value == "(";
   if ( isOpenParen) {   tokens -> removeLast ();
@@ -924,7 +938,8 @@ TResult<SkeletonNode> parseNext(Ref<Scanner> scanner) {
   if ( res -> value -> type != TokenType -> KEYWORD) {   scanner -> advance ()  return success ( SkeletonNode ( SkeletonType -> ATOM , token));
 }
 TResult<SkeletonNode> foldVar(Ref<Scanner> scanner, List<Token> modifiers) {
-  return parseReservedWordStatement ( scanner , modifiers , SkeletonType -> CONSTRUCT);
+  auto resultNode = parseReservedWordStatement ( scanner , modifiers , SkeletonType -> VAR);
+  return resultNode;
 }
 List<Token> accumulateModifiers(Ref<Scanner> self) {
   auto modifiers = mutableListOf < Token > ();
@@ -1027,8 +1042,7 @@ MiniType inferFunctionType(Ref<SkeletonNode> node) {
 }
 String semanticResolveType(MiniType name, Ref<GlobalSymbolTable> table) {
   auto symbol = semanticFindSymbol ( table -> symbols , name);
-  if ( symbol != nullptr) {   if ( ! symbol -> isData && symbol -> type == SkeletonType -> CLASS) {   return "Ref<" + name -> name -> nameToMiniType () + ">";
-  return name -> mapToFullName ();
+  if ( symbol != nullptr) {   if ( symbol -> type == SkeletonType -> CLASS) {   auto symbol = table -> symbols -> get ( symbolIndex)  auto classData = symbol -> decl as MiniClass  if ( ! classData -> isData) {   return "Ref<" + name -> name -> nameToMiniType () + ">";
 }
 String semanticResolveTypeFull(MiniType name, Ref<GlobalSymbolTable> table) {
   return semanticResolveType ( name , table);
@@ -1125,20 +1139,20 @@ TResult<GlobalSymbolTable> semanticCollectSymbols(List<CompilationUnit> units) {
   auto resultExtraction = extractTypeDeclarations ( units , table);
   if ( resultExtraction -> isError ()) {   return resultExtraction -> asError ();
   auto functions : List < MiniFunction > = units -> getDeclarations < MiniFunction > ();
-  for ( decl in functions) {   table -> functions -> add ( SymbolInfo ( decl -> name , false , SkeletonType -> FUNCTION , decl));
+  for ( decl in functions) {   auto symbolInfo = SymbolInfo ( SymbolType -> Function , decl -> name , SkeletonType -> FUNCTION , decl)  table -> functions -> add ( symbolInfo);
   return success ( table);
 }
-void registerTypeByRef(Ref<GlobalSymbolTable> self, MiniType typeName, Boolean isData) {
-  self -> symbols -> add ( SymbolInfo ( typeName , isData , SkeletonType -> CLASS , ""));
+void registerTypeByRef(Ref<GlobalSymbolTable> self, MiniType typeName, SymbolType symbolType) {
+  self -> symbols -> add ( SymbolInfo ( symbolType , typeName , SkeletonType -> CLASS , ""));
 }
-void registerType(Ref<GlobalSymbolTable> self, String typeName, Boolean isData) {
-  registerTypeByRef ( typeName -> nameToMiniType () , isData);
+void registerType(Ref<GlobalSymbolTable> self, String typeName, SymbolType symbolType) {
+  registerTypeByRef ( typeName -> nameToMiniType () , symbolType);
 }
 TResult<GlobalSymbolTable> extractTypeDeclarations(List<CompilationUnit> units, Ref<GlobalSymbolTable> table) {
   auto classes : List < MiniClass > = units -> getDeclarations < MiniClass > ();
-  for ( decl in classes) {   if ( semanticFindSymbol ( table -> symbols , decl -> name) != nullptr) {   return error ( "Duplicate class: ${decl.name}")  table -> symbols -> add ( SymbolInfo ( decl -> name , decl -> isData , SkeletonType -> CLASS , decl));
+  for ( decl in classes) {   if ( semanticFindSymbol ( table -> symbols , decl -> name) != nullptr) {   return error ( "Duplicate class: ${decl.name}")  auto symbolInfo = SymbolInfo ( SymbolType -> Class , decl -> name , SkeletonType -> CLASS , decl)  table -> symbols -> add ( symbolInfo);
   auto enums : List < MiniEnum > = units -> getDeclarations < MiniEnum > ();
-  for ( decl in enums) {   if ( semanticFindSymbol ( table -> symbols , decl -> name -> nameToMiniType ()) != nullptr) {   return error ( "Duplicate enum: ${decl.name}")  table -> symbols -> add ( SymbolInfo ( decl -> name -> nameToMiniType () , true , SkeletonType -> ENUM , decl));
+  for ( decl in enums) {   if ( semanticFindSymbol ( table -> symbols , decl -> name -> nameToMiniType ()) != nullptr) {   return error ( "Duplicate enum: ${decl.name}")  auto symbolInfo = SymbolInfo ( SymbolType -> Enum , decl -> name -> nameToMiniType () , SkeletonType -> ENUM , decl)  table -> symbols -> add ( symbolInfo);
   shellSort ( table -> symbols , :: shouldSymbolsBeFlipped);
   return success ( table);
 }
@@ -1252,8 +1266,8 @@ String generateCPlusPlusPreamble(Ref<GlobalSymbolTable> table) {
   auto sb = StringBuilder ();
   sb -> append ( "#include \"minikt.hpp\"\n\n");
   sb -> append ( "// --- Forward Declarations ---\n");
-  for ( symbol in table -> symbols) {   if ( symbol -> type == SkeletonType -> ENUM) {   sb -> append ( "enum class ") -> append ( symbol -> name) -> append ( " : Int;\n")  continue;
-  for ( symbol in table -> symbols) {   if ( symbol -> type == SkeletonType -> CLASS) {   auto miniClass = symbol -> decl as MiniClass  if ( miniClass -> isBuiltIn) continue  if ( symbol -> name -> generics -> isNotEmpty ()) {   sb -> append ( "template <")  for ( i in 0 until symbol -> name -> generics -> size) {   sb -> append ( "typename ") -> append ( symbol -> name -> generics [ i ])  if ( i < symbol -> name -> generics -> size - 1) sb -> append ( ",")  sb -> append ( ">\n")  sb -> append ( "struct ") -> append ( symbol -> name -> name) -> append ( ";\n");
+  for ( symbol in table -> symbols) {   if ( symbol -> type == SkeletonType -> ENUM) {   sb -> append ( "enum class ${symbol.name} : Int;\n")  continue;
+  for ( symbol in table -> symbols) {   if ( symbol -> type == SkeletonType -> CLASS) {   auto miniClass = symbol -> decl as MiniClass  if ( miniClass -> isBuiltIn) continue  if ( symbol -> name -> generics -> isNotEmpty ()) {   sb -> append ( "template <")  for ( i in 0 ..< symbol -> name -> generics -> size) {   auto templateItem = "typename ${symbol.name.generics.get(i)}"  sb -> append ( templateItem)  if ( i < symbol -> name -> generics -> size - 1) sb -> append ( ",")  sb -> append ( ">\n")  sb -> append ( "struct ${symbol.name.name} ;\n");
   sb -> append ( "\n// --- Type Aliases ---\n");
   return sb -> toString ();
 }
