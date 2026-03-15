@@ -46,8 +46,9 @@ fun <T> ListView<T>.get(index: Int): T {
     return items[start + index]
 }
 
-fun <T> ListView<T>.toList(): List<T> {
-    return items.subList(start, start + len)
+fun <T> ListView<T>.toList(): MutableList<T> {
+    val itemsList = items.subList(start, start + len)
+    return itemsList.toMutableList()
 }
 
 fun <T> ListView<T>.where(predicate: Predicate<T>): List<T> {

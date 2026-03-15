@@ -94,39 +94,38 @@ private fun extractTypeDeclarations(
         table.symbols.add(SymbolInfo(decl.name.nameToMiniType(), true, SkeletonType.ENUM, decl))
     }
 
-    shellSort(table.symbols, ::areTypesOrdered)
+    shellSort(table.symbols, ::shouldSymbolsBeFlipped)
 
     return success(table)
 }
 
-typealias SortyFunc = (SymbolInfo, SymbolInfo) -> Boolean
+typealias ShouldFlipOrderFunc = (SymbolInfo, SymbolInfo) -> Boolean
 
 fun swapInList(list: MutableList<SymbolInfo>, index1: Int, index2: Int) {
+    println("DEBUG: Swapped ${list[index1].name} and ${list[index2].name}");
     val temp = list[index1]
     list[index1] = list[index2]
     list[index2] = temp
+
 }
 
-fun shellSort(list: MutableList<SymbolInfo>, sortyFunc: SortyFunc) {
-    var gap = list.size / 2
-    while (gap > 0) {
-        for (i in gap..<list.size) {
-            val rightSideValue = list[i]
-            var j = i - gap
-            while (j >= 0) {
-                var current = list[j]
-                if (sortyFunc(current, rightSideValue)) {
-                    swapInList(list, j, i)
-                }
-                j -= gap
+fun shellSort(list: MutableList<SymbolInfo>, shouldFlipOrder: ShouldFlipOrderFunc) {
+
+    var isRerored = true
+    while (isRerored) {
+        isRerored = false
+        for (i in 0..<list.size) {
+            for (j in i+1..<list.size)
+            if (shouldFlipOrder(list[i], list[j])) {
+                swapInList(list, i, j)
+                isRerored = true
             }
         }
-        gap -= 1
     }
 }
 
 
-fun shellSort2(list: MutableList<SymbolInfo>, sortyFunc: SortyFunc) {
+fun shellSort2(list: MutableList<SymbolInfo>, sortyFunc: ShouldFlipOrderFunc) {
     var gap = list.size / 2
     while (gap > 0) {
         for (i in gap..<list.size) {
@@ -148,39 +147,67 @@ fun getDependentTypesOfMiniClass(decl: MiniClass): List<MiniType> {
     return decl.properties.map { it.type }
 }
 
-fun isTypeDependentOnOtherType(t1: SymbolInfo, typeToSearch: MiniType): Boolean {
-    if (t1.type == SkeletonType.CLASS) {
-        val miniType = t1.decl as MiniClass
-        val dependentTypes = getDependentTypesOfMiniClass(miniType)
-        if (dependentTypes.isEmpty()) {
-            return false
-        }
-        val view = dependentTypes.toListView()
-        val indexOf = view.indexOfFirst { it.name == typeToSearch.name }
-        return indexOf != -1
+fun getDependentTypesOfMiniClass(t: SymbolInfo): List<MiniType> {
+    if (t.type == SkeletonType.CLASS) {
+        val miniType = t.decl as MiniClass
+        return getDependentTypesOfMiniClass(miniType)
     }
-
-    return false
+    return emptyList()
 }
 
-fun areTypesOrdered(t1: SymbolInfo, t2: SymbolInfo): Boolean {
+fun isTypeDependentOnOtherType(t1: SymbolInfo, typeToSearch: MiniType): Boolean {
+
+    val dependentTypes = getDependentTypesOfMiniClass(t1)
+    if (dependentTypes.isEmpty()) {
+        return false
+    }
+    val view = dependentTypes.toListView()
+    val indexOf = view.indexOfFirst { it.name == typeToSearch.name }
+    return indexOf != -1
+
+}
+
+fun shouldSymbolsBeFlipped(t1: SymbolInfo, t2: SymbolInfo): Boolean {
+    var areSameType = t1.type == t2.type
+    val areNamesReordered = false;// t1.name.name > t2.name.name
+    if (areSameType) {
+        if (t1.type == SkeletonType.ENUM) {
+            return areNamesReordered
+        }
+    }
     if (t1.type == SkeletonType.ENUM) {
         return false
     }
     if (t2.type == SkeletonType.ENUM) {
         return true
     }
+
+    val getDependenciesOfT1 = getDependentTypesOfMiniClass(t1)
+    val getDependenciesOfT2 = getDependentTypesOfMiniClass(t2)
+    if (getDependenciesOfT1.isEmpty()) {
+        return false
+    }
+    if (getDependenciesOfT2.isEmpty()) {
+        return true
+    }
+
+
+    val isT1Dependent = isTypeDependentOnOtherType(t1, t2.name)
+    val isT2Dependent = isTypeDependentOnOtherType(t2, t1.name)
     if (t1.type == SkeletonType.CLASS) {
-        if (isTypeDependentOnOtherType(t1, t2.name)) {
+        if (isT1Dependent) {
             return true
         }
     }
     if (t2.type == SkeletonType.CLASS) {
-        if (isTypeDependentOnOtherType(t2, t1.name)) {
+        if (isT2Dependent) {
             return false
         }
     }
 
+    if (!isT1Dependent && !isT2Dependent) {
+        return areNamesReordered
+    }
     return false
 }
 

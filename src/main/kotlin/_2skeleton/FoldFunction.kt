@@ -74,10 +74,38 @@ fun parseBodyNext(scanner: Scanner, skeletonType: SkeletonType, closingTokenText
             skeleton.children.add(bodyResult.value!!)
 
         }
+        parenConservativeParenFolder(skeleton)
         rootNode.children.add(skeleton)
     }
 
     return success(rootNode)
+}
+
+fun previousOpenParenIndexOf(children: ListView<SkeletonNode>): Int {
+    return children.toList().indexOfLast { it.type == SkeletonType.ATOM && it.token?.value == "(" }
+}
+
+fun parenConservativeParenFolder(skeleton: SkeletonNode) {
+    val children = skeleton.children.toListView()
+    val closeParenIndexOf = children.indexOfFirst { it.type == SkeletonType.ATOM && it.token?.value == ")" }
+    if (closeParenIndexOf == -1) {
+        return
+    }
+    val smallView = children.slice(0, closeParenIndexOf)
+    val openParenIndexOf = previousOpenParenIndexOf(smallView)
+    if (openParenIndexOf == -1) {
+        return
+    }
+    val startSection = smallView.slice(openParenIndexOf + 1)
+    val openingSection = children.slice(0, openParenIndexOf)
+    val closingSection = children.slice(closeParenIndexOf + 1)
+    val newChildren = mutableListOf<SkeletonNode>()
+    newChildren.addAll(openingSection.toList())
+    newChildren.add(SkeletonNode(SkeletonType.PAREN, null, startSection.toList()))
+    newChildren.addAll(closingSection.toList())
+    skeleton.children.clear()
+    skeleton.children.addAll(newChildren)
+    parenConservativeParenFolder(skeleton)
 }
 
 fun Scanner.linesTokens(): MutableList<Token> {
