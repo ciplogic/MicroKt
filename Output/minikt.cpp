@@ -38,3 +38,7 @@ bool File::isDirectory() {
 bool File::isFile() {
     return fs::is_regular_file(this->name);
 }
+
+void println(String text) {
+    std::cout << text << std::endl;
+}

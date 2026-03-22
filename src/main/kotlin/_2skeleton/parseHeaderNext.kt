@@ -18,7 +18,7 @@ val headerPairs = arrayOf(
     PairRule("(", ")", SkeletonType.PAREN),
     PairRule("[", "]", SkeletonType.BRACKET),
     PairRule("<", ">", SkeletonType.CHEVRON),
-    PairRule("{", "}", SkeletonType.BRACE)
+    PairRule("{", "}", SkeletonType.CURLY)
 )
 
 fun foldGroupInHeader(

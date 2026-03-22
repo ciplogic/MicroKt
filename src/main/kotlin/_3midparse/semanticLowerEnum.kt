@@ -20,7 +20,7 @@ fun semanticLowerEnum(node: SkeletonNode): MiniEnum {
 
     // 2. Find the Body (the BRACE node)
     for (child in node.children) {
-        if (child.type == SkeletonType.BRACE) {
+        if (child.type == SkeletonType.CURLY) {
             // 3. Extract constants from the body
             // In a simple enum, constants are just IDENTIFIER atoms
             for (bodyChild in child.children) {

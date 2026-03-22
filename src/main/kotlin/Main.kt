@@ -1,9 +1,8 @@
 package org.example
 
 import org.example._0lex.Scanner
-import org.example._0lex.Token
-import org.example._0lex.TokenType
 import org.example._0lex.isAtEnd
+import org.example._1simpleparser.simpleParse
 import org.example._2skeleton.SkeletonNode
 import org.example._2skeleton.SkeletonType
 import org.example._2skeleton.parseNext
@@ -19,8 +18,9 @@ import org.example.common.toView
 import java.io.File
 
 fun main(args: Array<String>) {
-    parseFileToCompilationUnit(File("src/main/kotlin/_0lex/LexerRules.kt"))
     val kotlinFiles = scanFolderByExtension("src/main", "kt")
+    //val kotlinFiles = scanFolderByExtension("Examples/HelloWorld", "kt")
+
     val allUnits = parseFilesToUnits(kotlinFiles)
     allUnits.add(createRuntimeUnit())
 
@@ -70,6 +70,11 @@ private fun parseFileToCompilationUnit(file: File): CompilationUnit {
         skeletonNodes.add(res.value!!)
     }
 
+    val simpleScanned = simpleParse(file.canonicalPath)
+    if (simpleScanned.isError()) {
+        println("ERROR: ${simpleScanned.errorMessage}")
+    }
+
     // 2. Semantic Lowering (The new logic)
     val unit = semanticAnalyze(skeletonNodes)
     return unit
@@ -92,7 +97,7 @@ fun printNode(node: SkeletonNode, indent: Int) {
     if (node.type == SkeletonType.PAREN) {
         open = "("
         close = ")"
-    } else if (node.type == SkeletonType.BRACE) {
+    } else if (node.type == SkeletonType.CURLY) {
         open = "{"
         close = "}"
     } else if (node.type == SkeletonType.BRACKET) {

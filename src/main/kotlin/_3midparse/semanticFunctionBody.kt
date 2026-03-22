@@ -10,7 +10,7 @@ fun semanticBody(body: SkeletonNode?): MiniBody {
     if (body == null) {
         return MiniBody(childrenEmpty, null)
     }
-    if (body.type == SkeletonType.BRACE) {
+    if (body.type == SkeletonType.CURLY) {
         val children = body.children
         val semChildren = children.map { semanticBody(it) }
         return MiniBody(semChildren, body)

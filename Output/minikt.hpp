@@ -74,3 +74,5 @@ struct  StringBuilder {
         return *this;
     }
 };
+
+void println(String text);

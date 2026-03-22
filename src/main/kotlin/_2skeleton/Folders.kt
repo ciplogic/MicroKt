@@ -41,7 +41,7 @@ fun foldEnum(scanner: Scanner, modifiers: List<Token>): TResult<SkeletonNode> {
 
     // 4. Parse Body
     if (!scanner.isAtEnd() && scanner.peek().value!!.value == "{") {
-        val bodyResult = foldGroup(scanner, "{", "}", SkeletonType.BRACE)
+        val bodyResult = foldGroup(scanner, "{", "}", SkeletonType.CURLY)
         if (bodyResult.isError()) return bodyResult
         node.children.add(bodyResult.value!!)
     }

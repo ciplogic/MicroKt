@@ -99,7 +99,7 @@ fun foldClassProperty(scanner: Scanner, modifiers: List<Token>): TResult<Skeleto
 
 private fun foldClassBody(scanner: Scanner): TResult<SkeletonNode> {
     scanner.advance() // '{'
-    val bodyNode = SkeletonNode(SkeletonType.BRACE)
+    val bodyNode = SkeletonNode(SkeletonType.CURLY)
 
     while (!scanner.isAtEnd()) {
         val peekResult = scanner.peek()

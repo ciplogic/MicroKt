@@ -58,7 +58,7 @@ private fun semanticExtractClassProperties(node: List<SkeletonNode>): MutableLis
     for (child in childrenList) {
         if (child.type == SkeletonType.PAREN) {
             semanticExtractProperties(child, properties)
-        } else if (child.type == SkeletonType.BRACE) {
+        } else if (child.type == SkeletonType.CURLY) {
             semanticExtractProperties(child, properties)
         }
     }

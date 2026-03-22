@@ -204,7 +204,7 @@ fun semanticLowerFunction(node: SkeletonNode): MiniFunction {
         if (child.type == SkeletonType.PAREN) {
             // FIX: Extract (fileName: String) into the params list
             semanticExtractProperties(child, params)
-        } else if (child.type == SkeletonType.BRACE) {
+        } else if (child.type == SkeletonType.CURLY) {
             body = child
         }
     }
@@ -221,7 +221,7 @@ fun inferReturnFunctionType(node: SkeletonNode): MiniType {
         return MiniType("void")
     }
     var nodesAfterColon = children.slice(indexOfColon + 1)
-    val indexOfBrace = nodesAfterColon.indexOfFirst { it.type == SkeletonType.BRACE }
+    val indexOfBrace = nodesAfterColon.indexOfFirst { it.type == SkeletonType.CURLY }
     nodesAfterColon = nodesAfterColon.slice(0, indexOfBrace)
     val parsedType = semanticExtractType(nodesAfterColon.toList())
     return parsedType

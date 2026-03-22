@@ -57,7 +57,7 @@ enum class SkeletonType : Int {
     CONSTRUCT,
     ATOM,
     PAREN,
-    BRACE,
+    CURLY,
     BRACKET,
     CHEVRON,
     ENUM,
@@ -345,6 +345,14 @@ TResult<Token> peek(Ref<Scanner> self);
 
 String errorAt(Ref<Scanner> self, Int pos);
 
+TResult<MutableList<SkeletonNode>> simpleParse(String fileName);
+
+TResult<SkeletonNode> simpleParseBodyNext(Ref<Scanner> scanner);
+
+TResult<MutableList<SkeletonNode>> listOfNodes(Ref<Scanner> scanner);
+
+TResult<MutableList<Token>> lineTokensErr(Ref<Scanner> self);
+
 List<SkeletonNode> modifiersToAtoms(List<Token> modifiers);
 
 TResult<SkeletonNode> foldClassHeader(Ref<Scanner> scanner, List<Token> modifiers);
@@ -373,9 +381,9 @@ TResult<SkeletonNode> tryFoldChevron(Ref<Scanner> scanner);
 
 TResult<SkeletonNode> foldFunction(Ref<Scanner> scanner, List<Token> modifiers);
 
-void parenConservativeParenFolder(Ref<SkeletonNode> skeleton);
+void parenConservativeParenFolder(Ref<SkeletonNode> skeleton, String closingTokenText, SkeletonType typeOfFoldSkeletonNode, String openTokenText);
 
-MutableList<Token> linesTokens(Ref<Scanner> self);
+MutableList<Token> lineTokens(Ref<Scanner> self);
 
 Ref<SkeletonNode> tokensToStatement(List<Token> tokens);
 
@@ -638,7 +646,6 @@ StringView toView(String self) {
   return StringView ( self , 0 , self -> length);
 }
 void kMain(Array<String> args) {
-  parseFileToCompilationUnit ( File ( "src/main/kotlin/_0lex/LexerRules.kt"));
   auto kotlinFiles = scanFolderByExtension ( "src/main" , "kt");
   auto allUnits = parseFilesToUnits ( kotlinFiles);
   allUnits -> add ( createRuntimeUnit ());
@@ -660,6 +667,8 @@ Ref<CompilationUnit> parseFileToCompilationUnit(File file) {
   if ( file -> canonicalPath -> contains ( "Utils")) {   println ( "DEBUG: parsing file ${file.name}");
   auto skeletonNodes = mutableListOf < SkeletonNode > ();
   while ( ! scanner -> isAtEnd ()) {   auto res = parseNext ( scanner)  if ( res -> isError ()) {   println ( "SKIP: ${file.name} due to Lexer/Skeleton error: ${res.errorMessage}")  break  skeletonNodes -> add ( res -> value !!);
+  auto simpleScanned = simpleParse ( file -> canonicalPath);
+  if ( simpleScanned -> isError ()) {   println ( "ERROR: ${simpleScanned.errorMessage}");
   auto unit = semanticAnalyze ( skeletonNodes);
   return unit;
 }
@@ -668,7 +677,7 @@ void printNode(Ref<SkeletonNode> node, Int indent) {
   if ( node -> type == SkeletonType -> ATOM) {   auto token = node -> token !!  println ( "$prefix$token")  return;
   auto open = node -> type -> toString ();
   auto close = "";
-  if ( node -> type == SkeletonType -> PAREN) {   open = "("  close = ")"  } else if ( node -> type == SkeletonType -> BRACE) {   open = "{"  close = "}"  } else if ( node -> type == SkeletonType -> BRACKET) {   open = "["  close = "]"  } else if ( node -> type == SkeletonType -> CHEVRON) {   open = "<"  close = ">"  if ( close == "") {   println ( prefix + open + " {")  } else {   println ( prefix + open)  if ( close -> isEmpty ()) {   println ( "$prefix$open {")  } else {   println ( "$prefix$open")  for ( child in node -> children) {   printNode ( child , indent + 1)  if ( close -> isEmpty ()) {   println ( "$prefix}")  } else {   println ( "$prefix$close");
+  if ( node -> type == SkeletonType -> PAREN) {   open = "("  close = ")"  } else if ( node -> type == SkeletonType -> CURLY) {   open = "{"  close = "}"  } else if ( node -> type == SkeletonType -> BRACKET) {   open = "["  close = "]"  } else if ( node -> type == SkeletonType -> CHEVRON) {   open = "<"  close = ">"  if ( close == "") {   println ( prefix + open + " {")  } else {   println ( prefix + open)  if ( close -> isEmpty ()) {   println ( "$prefix$open {")  } else {   println ( "$prefix$open")  for ( child in node -> children) {   printNode ( child , indent + 1)  if ( close -> isEmpty ()) {   println ( "$prefix}")  } else {   println ( "$prefix$close");
 }
 Int getIdentifierLength(StringView view) {
   if ( ! isIdentifierStart ( view -> get ( 0))) {   return 0;
@@ -767,6 +776,27 @@ String errorAt(Ref<Scanner> self, Int pos) {
   fun Scanner -> expect ( text : String , nodeType : SkeletonType) : TResult < SkeletonNode > {   auto tokenRes = peek ()  if ( tokenRes -> isError ()) return tokenRes -> asError ()  auto token = tokenRes -> value !!  if ( token -> value != text) {   return error ( "Expected '$text' but found '${token.value}' at ${errorAt(pos)}")  advance ()  return success ( SkeletonNode ( nodeType , token));
   fun Scanner -> match ( text : String) : TResult < Token > {   auto res = self -> peek ()  if ( res -> isError ()) return res -> asError ()  auto token = res -> value !!  if ( token -> value == text) {   self -> advance ()  return success ( token)  return error ( "Expected '$text' but found '${token.value}' at ${this.errorAt(this.pos)}");
 }
+TResult<MutableList<SkeletonNode>> simpleParse(String fileName) {
+  auto content = readFileAsText ( fileName);
+  auto scanner = Scanner ( content -> toView ());
+  return listOfNodes ( scanner);
+}
+TResult<SkeletonNode> simpleParseBodyNext(Ref<Scanner> scanner) {
+  auto rootNode = SkeletonNode ( SkeletonType -> CONSTRUCT);
+  while ( ! scanner -> isAtEnd ()) {   auto lineTokensRes = scanner -> lineTokensErr ()  if ( lineTokensRes -> isError ()) {   return lineTokensRes -> asError ()  auto lineTokens = lineTokensRes -> value !!  if ( lineTokens -> isEmpty ()) {   continue  auto lastToken = lineTokens -> last ()  if ( lastToken -> value == "}") {   return success ( rootNode)  auto skeleton = tokensToStatement ( lineTokens)  auto isOpening = lastToken -> value == "{"  if ( isOpening) {   lineTokens -> removeLast ()  auto bodyResult = simpleParseBodyNext ( scanner)  if ( bodyResult -> isError ()) return bodyResult  skeleton -> children -> add ( bodyResult -> value !!)  rootNode -> children -> add ( skeleton);
+  return success ( rootNode);
+}
+TResult<MutableList<SkeletonNode>> listOfNodes(Ref<Scanner> scanner) {
+  auto result = mutableListOf < SkeletonNode > ();
+  while ( ! scanner -> isAtEnd ()) {   auto body = simpleParseBodyNext ( scanner)  if ( body -> isError ()) {   return body -> asError ()  result -> add ( body -> value !!);
+  return success ( result);
+}
+TResult<MutableList<Token>> lineTokensErr(Ref<Scanner> self) {
+  auto scanner = self;
+  auto lineTokens = mutableListOf < Token > ();
+  while ( ! scanner -> isAtEnd ()) {   auto scanPeek = scanner -> peek ()  if ( scanPeek -> isError ()) {   return scanPeek -> asError ()  auto peek = scanPeek -> value !!  auto current = scanner -> advance ()  if ( peek -> type == TokenType -> EOLN) {   break  lineTokens -> add ( current);
+  return success ( lineTokens);
+}
 List<SkeletonNode> modifiersToAtoms(List<Token> modifiers) {
   auto result = mutableListOf < SkeletonNode > ();
   for ( m in modifiers) {   result -> add ( SkeletonNode ( SkeletonType -> ATOM , m));
@@ -803,7 +833,7 @@ TResult<SkeletonNode> foldClassProperty(Ref<Scanner> scanner, List<Token> modifi
 }
 TResult<SkeletonNode> foldClassBody(Ref<Scanner> scanner) {
   scanner -> advance ();
-  auto bodyNode = SkeletonNode ( SkeletonType -> BRACE);
+  auto bodyNode = SkeletonNode ( SkeletonType -> CURLY);
   while ( ! scanner -> isAtEnd ()) {   auto peekResult = scanner -> peek ()  if ( peekResult -> isError ()) return peekResult -> asError ()  auto peek = peekResult -> value !!  auto text = peek -> value  if ( text == "}") {   scanner -> advance ()  break  if ( peek -> type == TokenType -> EOLN) {   scanner -> advance ()  continue  auto mods = scanner -> accumulateModifiers ()  auto nextResult = scanner -> peek ()  if ( nextResult -> isError ()) return nextResult -> asError ()  auto next = nextResult -> value !!  auto nextText = next -> value  if ( nextText == "val" || nextText == "var") {   auto prop = foldClassProperty ( scanner , mods)  if ( prop -> isError ()) return prop -> asError ()  bodyNode -> children -> add ( prop -> value !!)  } else if ( nextText == "fun") {   auto func = foldClassFunction ( scanner , mods)  if ( func -> isError ()) {   return func -> asError ()  bodyNode -> children -> add ( func -> value !!)  } else if ( next -> type == TokenType -> EOLN) {   bodyNode -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()))  } else {   return error ( "Unexpected token '$nextText' in class body at ${scanner.errorAt(scanner.pos)}")  return success ( bodyNode)  fun foldClassFunction ( scanner : Scanner , modifiers : List < Token >) : TResult < SkeletonNode > {   auto foldFunction = foldFunctionHeader ( scanner , modifiers)  if ( foldFunction -> isError ()) return foldFunction -> asError ()  auto node = foldFunction -> value !!  auto next = scanner -> peek ()  if ( next -> isSuccess ()) {   auto t = next -> value !!  auto text = t -> value  if ( text == "{") {   auto bodyResult = parseHeaderNext ( scanner)  if ( bodyResult -> isError ()) return bodyResult  node -> children -> add ( bodyResult -> value !!)  } else if ( text == "=") {   return error ( "Expected '{' after function name at ${scanner.errorAt(scanner.pos)}")  if ( ! scanner -> isAtEnd () && scanner -> peek () -> value ? -> type == TokenType -> EOLN) {   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()))  return success ( node);
 }
 TResult<SkeletonNode> foldEnum(Ref<Scanner> scanner, List<Token> modifiers) {
@@ -816,7 +846,7 @@ TResult<SkeletonNode> foldEnum(Ref<Scanner> scanner, List<Token> modifiers) {
   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , enumKeyword));
   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , classKeyword));
   while ( ! scanner -> isAtEnd ()) {   auto peekRes = scanner -> peek ()  if ( peekRes -> isError ()) return error ( peekRes -> errorMessage !!)  if ( peekRes -> value -> value == "{") break  auto headerNode = parseHeaderNext ( scanner)  if ( headerNode -> isError ()) return headerNode  node -> children -> add ( headerNode -> value !!);
-  if ( ! scanner -> isAtEnd () && scanner -> peek () -> value -> value == "{") {   auto bodyResult = foldGroup ( scanner , "{" , "}" , SkeletonType -> BRACE)  if ( bodyResult -> isError ()) return bodyResult  node -> children -> add ( bodyResult -> value !!);
+  if ( ! scanner -> isAtEnd () && scanner -> peek () -> value -> value == "{") {   auto bodyResult = foldGroup ( scanner , "{" , "}" , SkeletonType -> CURLY)  if ( bodyResult -> isError ()) return bodyResult  node -> children -> add ( bodyResult -> value !!);
   return success ( node);
 }
 TResult<SkeletonNode> foldPackage(Ref<Scanner> scanner, List<Token> modifiers) {
@@ -868,15 +898,16 @@ TResult<SkeletonNode> foldFunction(Ref<Scanner> scanner, List<Token> modifiers) 
   if ( foldFunction -> isError ()) return foldFunction -> asError ();
   auto node = foldFunction -> value !!;
   auto next = scanner -> peek ();
-  if ( next -> isSuccess ()) {   auto t = next -> value !!  auto text = t -> value  if ( text == "{") {   scanner -> advance ()  auto bodyResult = parseBodyNext ( scanner , SkeletonType -> BRACE , "}")  if ( bodyResult -> isError ()) return bodyResult  node -> children -> add ( bodyResult -> value !!)  } else if ( text == "=") {   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()))  auto exprResult = foldLineRemainder ( scanner)  if ( exprResult -> isError ()) return exprResult -> asError ()  node -> children -> addAll ( exprResult -> value !!)  if ( ! scanner -> isAtEnd () && scanner -> peek () -> value ? -> type == TokenType -> EOLN) {   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()))  return success ( node);
+  if ( next -> isSuccess ()) {   auto t = next -> value !!  auto text = t -> value  if ( text == "{") {   scanner -> advance ()  auto bodyResult = parseBodyNext ( scanner , SkeletonType -> CURLY , "}")  if ( bodyResult -> isError ()) return bodyResult  node -> children -> add ( bodyResult -> value !!)  } else if ( text == "=") {   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()))  auto exprResult = foldLineRemainder ( scanner)  if ( exprResult -> isError ()) return exprResult -> asError ()  node -> children -> addAll ( exprResult -> value !!)  if ( ! scanner -> isAtEnd () && scanner -> peek () -> value ? -> type == TokenType -> EOLN) {   node -> children -> add ( SkeletonNode ( SkeletonType -> ATOM , scanner -> advance ()))  return success ( node);
   fun isOpeningToken ( token : Token) : Boolean {   if ( token -> type != TokenType -> OPERATOR) {   return false  if ( token -> value == "{") {   return true  return false;
-  fun parseBodyNext ( scanner : Scanner , skeletonType : SkeletonType , closingTokenText : String) : TResult < SkeletonNode > {   auto rootNode = SkeletonNode ( skeletonType)  while ( ! scanner -> isAtEnd ()) {   auto lineTokens = scanner -> linesTokens ()  if ( lineTokens -> isEmpty ()) {   continue  auto lastToken = lineTokens -> last ()  if ( lastToken -> value == closingTokenText) {   return success ( rootNode)  auto skeleton = tokensToStatement ( lineTokens)  auto isOpening = isOpeningToken ( lastToken)  if ( isOpening) {   lineTokens -> removeLast ()  auto bodyResult = parseBodyNext ( scanner , skeletonType , "}")  if ( bodyResult -> isError ()) return bodyResult  skeleton -> children -> add ( bodyResult -> value !!)  parenConservativeParenFolder ( skeleton)  rootNode -> children -> add ( skeleton)  return success ( rootNode);
-  fun previousOpenParenIndexOf ( children : ListView < SkeletonNode >) : Int { ;
+  fun parseBodyNext ( scanner : Scanner , skeletonType : SkeletonType , closingTokenText : String) : TResult < SkeletonNode > {   auto rootNode = SkeletonNode ( skeletonType)  while ( ! scanner -> isAtEnd ()) {   auto lineTokens = scanner -> lineTokens ()  if ( lineTokens -> isEmpty ()) {   continue  auto lastToken = lineTokens -> last ()  if ( lastToken -> value == closingTokenText) {   return success ( rootNode)  auto skeleton = tokensToStatement ( lineTokens)  auto isOpening = isOpeningToken ( lastToken)  if ( isOpening) {   lineTokens -> removeLast ()  auto bodyResult = parseBodyNext ( scanner , skeletonType , "}")  if ( bodyResult -> isError ()) return bodyResult  skeleton -> children -> add ( bodyResult -> value !!)  parenConservativeParenFolder ( skeleton , ")" , SkeletonType -> PAREN , "(")  rootNode -> children -> add ( skeleton)  return success ( rootNode);
+  fun previousOpenParenIndexOf ( children : ListView < SkeletonNode > , openTokenText : String) : Int { ;
+  return _expr;
 }
-void parenConservativeParenFolder(Ref<SkeletonNode> skeleton) {
+void parenConservativeParenFolder(Ref<SkeletonNode> skeleton, String closingTokenText, SkeletonType typeOfFoldSkeletonNode, String openTokenText) {
   auto children = skeleton -> children -> toListView ();
 }
-MutableList<Token> linesTokens(Ref<Scanner> self) {
+MutableList<Token> lineTokens(Ref<Scanner> self) {
   auto scanner = self;
   auto lineTokens = mutableListOf < Token > ();
   while ( ! scanner -> isAtEnd ()) {   auto peek = scanner -> peek () -> value !!  if ( peek -> type == TokenType -> EOLN) break  lineTokens -> add ( scanner -> advance ());
@@ -918,7 +949,7 @@ TResult<SkeletonNode> parseHeaderNext(Ref<Scanner> scanner) {
   return success ( SkeletonNode ( SkeletonType -> ATOM , token));
 }
 TResult<SkeletonNode> parseReservedWordStatement(Ref<Scanner> scanner, List<Token> modifiers, SkeletonType skeletonType) {
-  auto tokens = scanner -> linesTokens ();
+  auto tokens = scanner -> lineTokens ();
   auto node = SkeletonNode ( skeletonType);
   node -> children -> addAll ( modifiersToAtoms ( modifiers));
   auto lastToken = tokens -> last ();
@@ -997,18 +1028,17 @@ String semanticGetText(Ref<SkeletonNode> node) {
   return "[${node.type}]";
 }
 Ref<MiniProperty> extractFromFoldedProperty(Ref<SkeletonNode> node) {
-  auto name = "";
   auto isVar = false;
   auto childView = node -> children -> toListView ();
   auto varToken = childView -> get ( 0) -> token !!;
   if ( varToken -> value == "var") {   isVar = true  childView = childView -> slice ( 1);
   if ( varToken -> value == "val") {   isVar = false  childView = childView -> slice ( 1);
   auto nameToken = childView -> get ( 0) -> token !!;
-  name = nameToken -> value;
+  auto name = nameToken -> value;
   childView = childView -> slice ( 2);
 }
 List<SkeletonNode> foldLocalPropertiesFromAtoms(List<SkeletonNode> children) {
-  if ( children -> isEmpty ()) return emptyList ();
+  if ( children -> isEmpty ()) {   return emptyList ();
   auto result = mutableListOf < SkeletonNode > ();
   auto pos = 0;
   auto currentProperty = SkeletonNode ( SkeletonType -> PROPERTY);
@@ -1029,10 +1059,10 @@ Ref<MiniFunction> semanticLowerFunction(Ref<SkeletonNode> node) {
   if ( funcType -> name == "main") {   funcType = MiniType ( "kMain");
   auto receiverType = inferReceiverOfFunction ( node);
   auto returnParsedType = inferReturnFunctionType ( node);
-  for ( child in node -> children) {   if ( child -> type == SkeletonType -> CHEVRON) {   } else if ( child -> type == SkeletonType -> PAREN) {   semanticExtractProperties ( child , params)  } else if ( child -> type == SkeletonType -> BRACE) {   body = child  auto semBody = semanticBody ( body)  return MiniFunction ( funcType , receiverType , params , returnParsedType , semBody)  fun inferReturnFunctionType ( node : SkeletonNode) : MiniType {   auto children = node -> children -> toListView ()  if ( indexOfColon == - 1) {   return MiniType ( "void")  auto nodesAfterColon = children -> slice ( indexOfColon + 1);
-  nodesAfterColon = nodesAfterColon -> slice ( 0 , indexOfBrace);
-  auto parsedType = semanticExtractType ( nodesAfterColon -> toList ());
-  return parsedType;
+  for ( child in node -> children) {   if ( child -> type == SkeletonType -> PAREN) {   semanticExtractProperties ( child , params)  } else if ( child -> type == SkeletonType -> CURLY) {   body = child  auto semBody = semanticBody ( body)  return MiniFunction ( funcType , receiverType , params , returnParsedType , semBody);
+  fun inferReturnFunctionType ( node : SkeletonNode) : MiniType {   auto children = node -> children -> toListView ();
+  if ( indexOfColon == - 1) {   return MiniType ( "void");
+  auto nodesAfterColon = children -> slice ( indexOfColon + 1);
 }
 MiniType inferReceiverOfFunction(Ref<SkeletonNode> node) {
   auto children = node -> children -> toListView ();
@@ -1042,7 +1072,10 @@ MiniType inferFunctionType(Ref<SkeletonNode> node) {
 }
 String semanticResolveType(MiniType name, Ref<GlobalSymbolTable> table) {
   auto symbol = semanticFindSymbol ( table -> symbols , name);
-  if ( symbol != nullptr) {   if ( symbol -> type == SkeletonType -> CLASS) {   auto symbol = table -> symbols -> get ( symbolIndex)  auto classData = symbol -> decl as MiniClass  if ( ! classData -> isData) {   return "Ref<" + name -> name -> nameToMiniType () + ">";
+  if ( symbol != nullptr && symbol -> symbolType == SymbolType -> Class) { ;
+  auto symbol = table -> symbols -> get ( symbolIndex);
+  auto classData = symbol -> decl as MiniClass;
+  if ( ! classData -> isData) {   return "Ref<" + name -> name -> nameToMiniType () + ">";
 }
 String semanticResolveTypeFull(MiniType name, Ref<GlobalSymbolTable> table) {
   return semanticResolveType ( name , table);
@@ -1054,11 +1087,11 @@ Ref<MiniClass> semanticLowerClass(Ref<SkeletonNode> node) {
 }
 IntermediateSemanticParseHeader intermediateSemanticParseHeader(Ref<SkeletonNode> node) {
   auto childrenListView = node -> children -> toListView ();
-  auto dataIndexOf = childrenListView -> indexOfFirst ( { it -> type == SkeletonType -> ATOM && it -> token ? -> value == "data" });
+  auto dataIndexOf = childrenListView -> indexOfFirst (  it -> type == SkeletonType -> ATOM && it -> token ? -> value == "data");
   auto isData = dataIndexOf != - 1;
-  auto classIndexOf = childrenListView -> indexOfFirst ( { it -> type == SkeletonType -> ATOM && it -> token ? -> value == "class" });
+  auto classIndexOf = childrenListView -> indexOfFirst (  it -> type == SkeletonType -> ATOM && it -> token ? -> value == "class");
   auto className = childrenListView -> get ( classIndexOf + 1) -> token ? -> value ? : "";
-  auto chevronIndexOf = childrenListView -> indexOfFirst ( { it -> type == SkeletonType -> CHEVRON });
+  auto chevronIndexOf = childrenListView -> indexOfFirst (  it -> type == SkeletonType -> CHEVRON);
   auto typeParams = mutableListOf < MiniType > ();
   if ( chevronIndexOf != - 1) {   semanticExtractTypeParams ( childrenListView -> get ( chevronIndexOf) , typeParams);
   auto classType = MiniType ( className , typeParams , false);
@@ -1070,7 +1103,7 @@ IntermediateSemanticParseHeader intermediateSemanticParseHeader(Ref<SkeletonNode
 MutableList<MiniProperty> semanticExtractClassProperties(List<SkeletonNode> node) {
   auto childrenList = node -> toList ();
   auto properties = mutableListOf < MiniProperty > ();
-  for ( child in childrenList) {   if ( child -> type == SkeletonType -> PAREN) {   semanticExtractProperties ( child , properties)  } else if ( child -> type == SkeletonType -> BRACE) {   semanticExtractProperties ( child , properties)  return properties;
+  for ( child in childrenList) {   if ( child -> type == SkeletonType -> PAREN) {   semanticExtractProperties ( child , properties)  } else if ( child -> type == SkeletonType -> CURLY) {   semanticExtractProperties ( child , properties)  return properties;
   fun semanticExtractProperties ( node : SkeletonNode , list : MutableList < MiniProperty >) {   if ( node -> children -> isEmpty ()) {   return  if ( node -> children -> get ( 0) -> type == SkeletonType -> ATOM) {   auto properties = foldLocalPropertiesFromAtoms ( node -> children)  node -> children -> clear ()  node -> children -> addAll ( properties)  auto i = 0  while ( i < node -> children -> size) {   auto child = node -> children [ i ]  if ( child -> type == SkeletonType -> PROPERTY) {   auto foldedProperty = extractFromFoldedProperty ( child)  list -> add ( foldedProperty)  i ++  continue  if ( child -> type == SkeletonType -> ATOM) {   auto text = child -> token -> value  if ( text == "val" || text == "var") {   i ++;
   fun semanticExtractTypeParams ( node : SkeletonNode , list : MutableList < MiniType >) {   for ( child in node -> children) {   if ( child -> type == SkeletonType -> ATOM) {   auto t = child -> token !!  if ( t -> type == TokenType -> IDENTIFIER) {   list -> add ( t -> value -> nameToMiniType ())  } else if ( child -> type == SkeletonType -> CHEVRON) {   semanticExtractTypeParams ( child , list);
 }
@@ -1091,15 +1124,15 @@ void semanticExtractGenericParams(ListView<SkeletonNode> genericChildView, Mutab
 MiniBody semanticBody(Ref<SkeletonNode> body) {
   auto childrenEmpty = arrayListOf < MiniBody > ();
   if ( body == nullptr) {   return MiniBody ( childrenEmpty , nullptr);
-  if ( body -> type == SkeletonType -> BRACE) {   auto children = body -> children;
+  if ( body -> type == SkeletonType -> CURLY) {   auto children = body -> children;
   return MiniBody ( semChildren , body);
 }
 Ref<MiniEnum> semanticLowerEnum(Ref<SkeletonNode> node) {
   auto constants = mutableListOf < String > ();
   auto enumName =;
-  node -> children -> toListView () -> where ( { it -> type == SkeletonType -> ATOM && it -> token ? -> type == TokenType -> IDENTIFIER });
+  node -> children -> toListView () -> where (  it -> type == SkeletonType -> ATOM && it -> token ? -> type == TokenType -> IDENTIFIER);
   -> get ( 0) -> token -> value;
-  for ( child in node -> children) {   if ( child -> type == SkeletonType -> BRACE) {   for ( bodyChild in child -> children) {   if ( bodyChild -> type == SkeletonType -> ATOM) {   auto t = bodyChild -> token !!  if ( t -> type == TokenType -> IDENTIFIER) {   constants -> add ( t -> value)  break;
+  for ( child in node -> children) {   if ( child -> type == SkeletonType -> CURLY) {   for ( bodyChild in child -> children) {   if ( bodyChild -> type == SkeletonType -> ATOM) {   auto t = bodyChild -> token !!  if ( t -> type == TokenType -> IDENTIFIER) {   constants -> add ( t -> value)  break;
   return MiniEnum ( enumName , constants);
 }
 Ref<MiniTypeAlias> semanticTypeAlias(Ref<SkeletonNode> node) {
@@ -1280,8 +1313,8 @@ void generateFunctionBody(MiniBody body, StringBuilder sb, Boolean isExtension, 
   generateFunctionBodyNode ( node , sb , isExtension , table);
 }
 void generateFunctionBodyNode(Ref<SkeletonNode> node, StringBuilder sb, Boolean isExtension, Ref<GlobalSymbolTable> table) {
-  if ( node -> type == SkeletonType -> BRACE) {   sb -> append ( " {\n")  for ( child in node -> children) {   generateStatement ( child , sb , isExtension , table)  sb -> append ( "}\n")  } else {   sb -> append ( " { return ")  generateExpression ( node , sb , isExtension , table)  sb -> append ( "; }\n");
-  fun generateStatement ( node : SkeletonNode , sb : StringBuilder , isExtension : Boolean , table : GlobalSymbolTable) {   auto type = node -> type  auto localSb = StringBuilder ()  if ( type == SkeletonType -> PROPERTY) generateLocalVar ( node , localSb , isExtension , table)  else if ( type == SkeletonType -> ATOM) {   generateExpression ( node , localSb , isExtension , table)  if ( node -> token ? -> value == "\n") sb -> append ( ";\n")  } else {   generateExpression ( node , localSb , isExtension , table)  localSb -> append ( ";\n")  auto outText = localSb -> toString ()  sb -> append ( outText)  fun generateLocalVar ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   auto isVar = false  auto name = ""  auto equalsIndex = - 1  for ( i in 0 until node -> children -> size) {   auto child = node -> children [ i ]  auto text = semanticGetText ( child)  if ( text == "var") {   isVar = true  } else if ( child -> token ? -> type == TokenType -> IDENTIFIER && name == "") {   name = text  } else if ( text == "=") {   equalsIndex = i  break  if ( ! isVar) {   sb -> append ( "const ")  sb -> append ( "auto ") -> append ( name)  if ( equalsIndex != - 1) {   sb -> append ( " = ")  for ( j in ( equalsIndex + 1) until node -> children -> size) {   auto exprNode = node -> children [ j ]  if ( exprNode -> token ? -> type == TokenType -> EOLN) continue  generateExpression ( exprNode , sb , isExt , table)  sb -> append ( ";\n")  fun generateExpression ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   sb -> append ( " ")  if ( node -> type == SkeletonType -> ATOM) {   auto t = node -> token !!  auto text = t -> value  if ( text == "this") {   if ( isExt) sb -> append ( "self") else sb -> append ( "this")  } else if ( text == "." || text == "!!." || text == "?.") {   sb -> append ( "->")  } else if ( text == "null") {   sb -> append ( "nullptr")  } else if ( text == "val") {   sb -> append ( "auto")  } else if ( text == "var") {   sb -> append ( "auto")  } else if ( text == "true") {   sb -> append ( "true")  } else if ( text == "false") {   sb -> append ( "false")  } else {   sb -> append ( text)  } else if ( node -> type == SkeletonType -> PAREN) {   sb -> append ( "(")  for ( i in 0 until node -> children -> size) {   generateExpression ( node -> children [ i ] , sb , isExt , table)  sb -> append ( ")")  } else if ( node -> type == SkeletonType -> CHEVRON) {   sb -> append ( "<")  for ( i in 0 until node -> children -> size) {   generateExpression ( node -> children [ i ] , sb , isExt , table)  sb -> append ( ">")  } else {   for ( child in node -> children) {   generateExpression ( child , sb , isExt , table)  fun generateIf ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   sb -> append ( "if ")  if ( condNode != nullptr) {   generateExpression ( condNode , sb , isExt , table)  auto thenIndex = node -> children -> indexOf ( condNode) + 1  if ( thenIndex < node -> children -> size) {   auto thenNode = node -> children [ thenIndex ]  generateFunctionBodyNode ( thenNode , sb , isExt , table)  auto elseIndex = findElseIndex ( node)  if ( elseIndex != - 1 && elseIndex + 1 < node -> children -> size) {   sb -> append ( " else ")  auto elseNode = node -> children [ elseIndex + 1 ]  generateFunctionBodyNode ( elseNode , sb , isExt , table)  private fun generateBranch ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   if ( node -> type == SkeletonType -> BRACE) {   generateFunctionBodyNode ( node , sb , isExt , table)  } else {   sb -> append ( " ")  generateExpression ( node , sb , isExt , table)  private fun findElseIndex ( node : SkeletonNode) : Int {   for ( i in 0 until node -> children -> size) {   if ( node -> children [ i ] -> token ? -> value == "else") return i  return - 1  fun generateLocalProperty ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   auto isVar = false  auto name = ""  "auto"  auto hasInitializer = false  for ( child in node -> children) {   auto text = semanticGetText ( child)  if ( text == "var") isVar = true  else if ( text == "val") isVar = false  else if ( child -> token ? -> type == TokenType -> IDENTIFIER && name == "") {   name = text  } else if ( text == ":") {   } else if ( text == "=") {   hasInitializer = true  break  if ( ! isVar) sb -> append ( "const ")  sb -> append ( "auto ") -> append ( name)  if ( hasInitializer) {   sb -> append ( " = ")  for ( j in ( equalsIndex + 1) until node -> children -> size) {   generateExpression ( node -> children [ j ] , sb , isExt , table)  sb -> append ( ";\n")  fun generateWhile ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   sb -> append ( "while ")  if ( condNode != nullptr) {   generateExpression ( condNode , sb , isExt , table)  auto bodyIndex = node -> children -> indexOf ( condNode) + 1  if ( bodyIndex < node -> children -> size) {   auto bodyNode = node -> children [ bodyIndex ]  generateBranch ( bodyNode , sb , isExt , table)  sb -> append ( "\n")  fun generateFor ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   sb -> append ( "for (")  if ( header != nullptr) {   auto foundIn = false  for ( hChild in header -> children) {   auto text = hChild -> token ? -> value ? : ""  if ( text == "(" || text == ")") continue  if ( text == "in") {   sb -> append ( " : ")  foundIn = true  } else if ( ! foundIn && hChild -> token ? -> type == TokenType -> IDENTIFIER) {   sb -> append ( "auto ") -> append ( text)  } else {   generateExpression ( hChild , sb , isExt , table)  sb -> append ( ")")  generateFunctionBodyNode ( node -> children -> last () , sb , isExt , table);
+  if ( node -> type == SkeletonType -> CURLY) {   sb -> append ( " {\n")  for ( child in node -> children) {   generateStatement ( child , sb , isExtension , table)  sb -> append ( "}\n")  } else {   sb -> append ( " { return ")  generateExpression ( node , sb , isExtension , table)  sb -> append ( "; }\n");
+  fun generateStatement ( node : SkeletonNode , sb : StringBuilder , isExtension : Boolean , table : GlobalSymbolTable) {   auto type = node -> type  auto localSb = StringBuilder ()  if ( type == SkeletonType -> PROPERTY) {   generateLocalVar ( node , localSb , isExtension , table)  else if ( type == SkeletonType -> ATOM) {   generateExpression ( node , localSb , isExtension , table)  if ( node -> token ? -> value == "\n") sb -> append ( ";\n")  } else {   generateExpression ( node , localSb , isExtension , table)  localSb -> append ( ";\n")  auto outText = localSb -> toString ()  sb -> append ( outText)  fun generateLocalVar ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   auto isVar = false  auto name = ""  auto equalsIndex = - 1  for ( i in 0 until node -> children -> size) {   auto child = node -> children [ i ]  auto text = semanticGetText ( child)  if ( text == "var") {   isVar = true  } else if ( child -> token ? -> type == TokenType -> IDENTIFIER && name == "") {   name = text  } else if ( text == "=") {   equalsIndex = i  break  if ( ! isVar) {   sb -> append ( "const ")  sb -> append ( "auto ") -> append ( name)  if ( equalsIndex != - 1) {   sb -> append ( " = ")  for ( j in ( equalsIndex + 1) until node -> children -> size) {   auto exprNode = node -> children [ j ]  if ( exprNode -> token ? -> type == TokenType -> EOLN) continue  generateExpression ( exprNode , sb , isExt , table)  sb -> append ( ";\n")  fun generateExpression ( node : SkeletonNode , sb : StringBuilder , isExt : Boolean , table : GlobalSymbolTable) {   sb -> append ( " ")  if ( node -> type == SkeletonType -> ATOM) {   auto t = node -> token !!  auto text = t -> value  if ( text == "this") {   if ( isExt) sb -> append ( "self") else sb -> append ( "this")  } else if ( text == "." || text == "!!." || text == "?.") {   sb -> append ( "->")  } else if ( text == "null") {   sb -> append ( "nullptr")  } else if ( text == "val") {   sb -> append ( "auto")  } else if ( text == "var") {   sb -> append ( "auto")  } else if ( text == "true") {   sb -> append ( "true")  } else if ( text == "false") {   sb -> append ( "false")  } else {   sb -> append ( text)  } else if ( node -> type == SkeletonType -> PAREN) {   sb -> append ( "(")  for ( i in 0 until node -> children -> size) {   generateExpression ( node -> children [ i ] , sb , isExt , table)  sb -> append ( ")")  } else if ( node -> type == SkeletonType -> CHEVRON) {   sb -> append ( "<")  for ( i in 0 until node -> children -> size) {   generateExpression ( node -> children [ i ] , sb , isExt , table)  sb -> append ( ">")  } else {   for ( child in node -> children) {   generateExpression ( child , sb , isExt , table);
 }
 void generateFunctionSignatures(StringBuilder sb, Ref<GlobalSymbolTable> table) {
   sb -> append ( "// --- Function Signatures ---\n\n");
@@ -1307,11 +1340,11 @@ void generateTemplateHeaderForFunction(Ref<MiniFunction> decl, StringBuilder sb)
 void generateAllFunctionBodies(StringBuilder sb, Ref<GlobalSymbolTable> table) {
   sb -> append ( "// --- Function Implementations ---\n\n");
   auto functions = table -> getTableFunctions ();
-  for ( decl in functions) {   auto body = decl -> body ? : continue  auto localSb = StringBuilder ()  if ( decl -> name -> generics -> isNotEmpty ()) {   localSb -> append ( "template <")  localSb -> append ( decl -> name -> generics -> joinToString ( ",") { "typename $it" })  localSb -> append ( ">\n")  auto cppReturn = semanticResolveType ( decl -> returnType , table)  localSb -> append ( cppReturn) -> append ( " ") -> append ( decl -> name -> name) -> append ( "(")  auto first = true  if ( decl -> receiverType != nullptr) {   localSb -> append ( semanticResolveType ( decl -> receiverType , table)) -> append ( " self")  first = false  for ( p in decl -> params) {   if ( ! first) localSb -> append ( ", ")  localSb -> append ( semanticResolveTypeFull ( p -> type , table)) -> append ( " ") -> append ( p -> name)  first = false  localSb -> append ( ")")  generateFunctionBody ( body , localSb , decl -> receiverType != nullptr , table)  sb -> append ( localSb -> toString ());
+  for ( decl in functions) {   auto body = decl -> body ? : continue  auto localSb = StringBuilder ()  if ( decl -> name -> generics -> isNotEmpty ()) {   localSb -> append ( "template <")  localSb -> append ( decl -> name -> generics -> joinToString ( ",")  "typename $it")  localSb -> append ( ">\n")  auto cppReturn = semanticResolveType ( decl -> returnType , table)  localSb -> append ( cppReturn) -> append ( " ") -> append ( decl -> name -> name) -> append ( "(")  auto first = true  if ( decl -> receiverType != nullptr) {   localSb -> append ( semanticResolveType ( decl -> receiverType , table)) -> append ( " self")  first = false  for ( p in decl -> params) {   if ( ! first) localSb -> append ( ", ")  localSb -> append ( semanticResolveTypeFull ( p -> type , table)) -> append ( " ") -> append ( p -> name)  first = false  localSb -> append ( ")")  generateFunctionBody ( body , localSb , decl -> receiverType != nullptr , table)  sb -> append ( localSb -> toString ());
 }
 void generateCPlusPlusTypeAliases(Ref<CompilationUnit> unit, StringBuilder sb, Ref<GlobalSymbolTable> table) {
   auto miniTypes = unit -> getDeclarations < MiniTypeAlias > ();
-  for ( decl in miniTypes) {   if ( decl -> name -> generics -> isNotEmpty ()) {   sb -> append ( "template <")  auto first = true  for ( param in decl -> name -> generics) {   if ( ! first) sb -> append ( ", ")  sb -> append ( "typename ") -> append ( param)  first = false  sb -> append ( ">\n")  sb -> append ( "using ") -> append ( decl -> name -> name)  -> append ( " = ")  sb -> append ( "Func<") -> append ( decl -> returnType -> mapToFullName ())  -> append ( "(")  -> append ( decl -> params -> joinToString ( ", ") { it -> type -> mapToFullName () })  -> append ( ")")  -> append ( ">")  sb -> append ( ";\n");
+  for ( decl in miniTypes) {   if ( decl -> name -> generics -> isNotEmpty ()) {   sb -> append ( "template <")  auto first = true  for ( param in decl -> name -> generics) {   if ( ! first) sb -> append ( ", ")  sb -> append ( "typename ") -> append ( param)  first = false  sb -> append ( ">\n")  sb -> append ( "using ") -> append ( decl -> name -> name)  -> append ( " = ")  sb -> append ( "Func<") -> append ( decl -> returnType -> mapToFullName ())  -> append ( "(")  -> append ( decl -> params -> joinToString ( ", ")  it -> type -> mapToFullName ())  -> append ( ")")  -> append ( ">")  sb -> append ( ";\n");
 }
 void generateOutputCode(Ref<GlobalSymbolTable> globalTable, MutableList<CompilationUnit> allUnits) {
   auto finalCpp = StringBuilder ();

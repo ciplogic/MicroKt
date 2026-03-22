@@ -23,7 +23,7 @@ private val structuralRules = arrayOf(
 )
 
 fun parseReservedWordStatement(scanner: Scanner, modifiers: List<Token>, skeletonType: SkeletonType = SkeletonType.STATEMENT ): TResult<SkeletonNode> {
-    val tokens = scanner.linesTokens()
+    val tokens = scanner.lineTokens()
 
     val node = SkeletonNode(skeletonType)
     node.children.addAll(modifiersToAtoms(modifiers))
